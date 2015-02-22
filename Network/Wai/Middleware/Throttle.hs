@@ -141,9 +141,10 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
     reqIsThrottled <- isThrottled req
 
     -- seconds remaining (if the request failed), 0 otherwise.
-    remaining      <- if reqIsThrottled
-                        then throttleReq
-                        else return 0
+    remaining <- if reqIsThrottled
+                   then throttleReq
+                   else return 0
+
     if remaining /= 0
         then respond $ onThrottled remaining
         else app req respond
