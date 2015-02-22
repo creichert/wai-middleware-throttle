@@ -60,19 +60,10 @@ test-suite spec
                      , transformers
 
 
-test-suite doctest
-  default-language:    Haskell2010
-  ghc-options:         -Wall -Werror -threaded
-  main-is:             test/DocTest.hs
-  type:                exitcode-stdio-1.0
-  build-depends:       base
-                     , doctest == 0.9.*
-                     , Glob    == 0.7.*
-
-
 test-suite haddock
   main-is:             test/Haddock.hs
   ghc-options:         -Wall -Werror -threaded
+  build-tools:         haddock
   type:                exitcode-stdio-1.0
   default-language:    Haskell2010
   build-depends:       base
@@ -81,9 +72,9 @@ test-suite haddock
 
 
 test-suite hlint
-    main-is:          test/HLint.hs
-    ghc-options:      -Wall -Werror -threaded
-    type:             exitcode-stdio-1.0
-    default-language: Haskell2010
-    build-depends:    base
-                    , hlint == 1.8.*
+  main-is:          test/HLint.hs
+  ghc-options:      -Wall -Werror -threaded
+  type:             exitcode-stdio-1.0
+  default-language: Haskell2010
+  build-depends:    base
+                  , hlint == 1.8.*
