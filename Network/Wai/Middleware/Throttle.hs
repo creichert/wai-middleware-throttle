@@ -50,7 +50,7 @@ import           Control.Monad                  (liftM)
 import qualified Data.ByteString.Char8          as BS
 import qualified Data.HashMap.Strict            as H
 import qualified Data.Text                      as T
-import           GHC.Word
+import           GHC.Word                       (Word64)
 import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
 import           Network.Wai
@@ -139,6 +139,8 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
 
     -- determine whether the request needs throttling
     reqIsThrottled <- isThrottled req
+
+    -- seconds remaining (if the request failed), 0 otherwise.
     remaining      <- if reqIsThrottled
                         then throttleReq
                         else return 0
@@ -153,7 +155,7 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
       throttleState  <- atomically $ readTVar tmap
       (tst, success) <- throttleReq' remoteAddr throttleState
 
-      -- write the map back
+      -- write the throttle state back
       atomically $ writeTVar tmap (ThrottleState tst)
       return success
 
