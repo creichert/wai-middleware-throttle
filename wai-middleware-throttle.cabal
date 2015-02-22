@@ -36,7 +36,7 @@ library
                      , stm
                      , token-bucket
 
-  if impl(ghc <= 7.6)
+  if impl(ghc < 7.8)
     build-depends:
       blaze-builder < 0.4
 
