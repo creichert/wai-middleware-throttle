@@ -38,7 +38,7 @@ module Network.Wai.Middleware.Throttle (
     , WaiThrottle
     , initThrottler
 
-      -- | Settings
+      -- | Throttle settings and configuration
     , ThrottleSettings(..)
     , defaultThrottleSettings
     ) where
