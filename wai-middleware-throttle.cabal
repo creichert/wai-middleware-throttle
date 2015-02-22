@@ -47,7 +47,7 @@ test-suite spec
   other-modules:       WaiMiddlewareThrottleSpec
   ghc-options:         -Wall -threaded
   default-language:    Haskell2010
-  build-depends:       base                     == 4.6 && < 5.0
+  build-depends:       base                     >= 4.6 && < 5.0
                      , bytestring
                      , wai-middleware-throttle
                      , wai
