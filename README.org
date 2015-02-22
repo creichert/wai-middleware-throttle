@@ -38,7 +38,7 @@ Rate Limit and Throttle WAI Requests
              'sustained': '1000/day'
          }
      }
-     #+BEGIN_SRC
+     #+END_SRC
    - [ ] Zoned throttling
      #+BEGIN_SRC
      http {
@@ -53,5 +53,5 @@ Rate Limit and Throttle WAI Requests
          location /search/ {
              limit_req zone=one burst=5;
      }
-     #+BEGIN_SRC
+     #+END_SRC
    - [ ] cache with size limit for managing the remote addresses
