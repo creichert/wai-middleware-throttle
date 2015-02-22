@@ -1,0 +1,57 @@
+#+TITLE: WAI Request Rate Limiting Middleware
+#+AUTHOR: Christopher Reichert
+#+EMAIL: creichert07@gmail.com
+#+LINK: badge-hackage https://img.shields.io/hackage/v/wai-middleware-throttle.svg?dummy
+#+LINK: hackage       https://hackage.haskell.org/package/wai-middleware-throttle
+#+LINK: issues        https://github.com/creichert/wai-middleware-throttle/issues
+
+[[https://travis-ci.org/creichert/wai-middleware-throttle][https://travis-ci.org/creichert/wai-middleware-throttle.svg?branch=master]]
+[[https://github.com/creichert/wai-middleware-throttle/blob/master/LICENSE][https://img.shields.io/badge/license-BSD3-green.svg?dummy]]
+
+
+Rate Limit and Throttle WAI Requests
+
+** Example
+   #+BEGIN_SRC haskell
+   main = do
+     st <- initThrottler
+     let payload  = "{ \"api\", \"return data\" }"
+         app = throttle defaultThrottleSettings st
+                 $ \_ f -> f (responseLBS status200 [] payload)
+     Warp.run 3000 app
+   #+END_SRC
+
+
+** Wishlist
+   - [ ] support for X-RateLimit-Limit and X-RateLimit-Remaining headers
+     /Whether or not they have these specific names/
+   - [ ] Burst or Sustained throttling similar to the Django
+     throttling framework:
+     #+BEGIN_SRC
+     REST_FRAMEWORK = {
+         'DEFAULT_THROTTLE_CLASSES': (
+             'example.throttles.BurstRateThrottle',
+             'example.throttles.SustainedRateThrottle'
+         ),
+         'DEFAULT_THROTTLE_RATES': {
+             'burst': '60/min',
+             'sustained': '1000/day'
+         }
+     }
+     #+BEGIN_SRC
+   - [ ] Zoned throttling
+     #+BEGIN_SRC
+     http {
+       limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+
+       ...
+
+       server {
+
+         ...
+
+         location /search/ {
+             limit_req zone=one burst=5;
+     }
+     #+BEGIN_SRC
+   - [ ] cache with size limit for managing the remote addresses
