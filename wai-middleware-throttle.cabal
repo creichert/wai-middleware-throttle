@@ -38,7 +38,7 @@ library
 
   if impl(ghc <= 7.6)
     build-depends:
-      wai <= 3.0.2
+      blaze-builder < 0.4
 
 test-suite spec
   type:                exitcode-stdio-1.0
