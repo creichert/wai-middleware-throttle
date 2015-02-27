@@ -43,13 +43,11 @@ module Network.Wai.Middleware.Throttle (
     , defaultThrottleSettings
     ) where
 
-import           Control.Applicative
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (liftM)
 import qualified Data.ByteString.Char8          as BS
-import qualified Data.HashMap.Strict            as H
-import qualified Data.Text                      as T
+import qualified Data.IntMap                    as IM
 import           GHC.Word                       (Word64)
 import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
@@ -60,7 +58,7 @@ newtype WaiThrottle = WT (TVar ThrottleState)
 
 
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'
-data ThrottleState = ThrottleState !(H.HashMap T.Text TokenBucket)
+data ThrottleState = ThrottleState !(IM.IntMap TokenBucket)
 
 
 -- | Settings which control various behaviors in the middleware.
@@ -95,7 +93,7 @@ data ThrottleSettings = ThrottleSettings
 
 
 initThrottler :: IO WaiThrottle
-initThrottler = liftM WT $ newTVarIO $ ThrottleState H.empty
+initThrottler = liftM WT $ newTVarIO $ ThrottleState IM.empty
 
 
 -- | Default settings to throttle requests.
@@ -151,10 +149,9 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
   where
     throttleReq = do
 
-      let SockAddrInet _ host = remoteHost req
-      remoteAddr     <- T.pack <$> inet_ntoa host
+      let SockAddrInet _ remoteAddr = remoteHost req
       throttleState  <- atomically $ readTVar tmap
-      (tst, success) <- throttleReq' remoteAddr throttleState
+      (tst, success) <- throttleReq' (fromIntegral remoteAddr) throttleState
 
       -- write the throttle state back
       atomically $ writeTVar tmap (ThrottleState tst)
@@ -166,7 +163,7 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
           invRate     = toInvRate (fromInteger throttleRate :: Double)
           burst       = fromInteger throttleBurst
 
-      bucket    <- maybe newTokenBucket return $ H.lookup remoteAddr m
+      bucket    <- maybe newTokenBucket return $ IM.lookup remoteAddr m
       remaining <- tokenBucketTryAlloc1 bucket burst invRate
 
-      return (H.insert remoteAddr bucket m, remaining)
+      return (IM.insert remoteAddr bucket m, remaining)
