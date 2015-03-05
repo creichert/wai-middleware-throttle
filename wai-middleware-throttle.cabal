@@ -1,6 +1,6 @@
 
 name:                wai-middleware-throttle
-version:             0.2.0.0
+version:             0.2.0.1
 license:             BSD3
 license-file:        LICENSE
 author:              Christopher Reichert
@@ -75,4 +75,4 @@ test-suite hlint
   type:             exitcode-stdio-1.0
   default-language: Haskell2010
   build-depends:    base
-                  , hlint == 1.8.*
+                  , hlint

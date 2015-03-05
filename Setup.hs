@@ -1,2 +1,10 @@
 import Distribution.Simple
-main = defaultMain
+import Distribution.Simple.Program
+
+main :: IO ()
+main = defaultMainWithHooks simpleUserHooks
+       {
+         -- cabal-install is used during testing to run
+         -- and verify haddock documentation.
+         hookedPrograms = [ simpleProgram "cabal" ]
+       }
