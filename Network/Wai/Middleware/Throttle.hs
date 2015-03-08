@@ -17,7 +17,7 @@
 -- @
 -- main = do
 --   st <- initThrottler
---   let payload  = "{ \"api\", \"return data\" }"
+--   let payload  = "{ \"api\": \"return data\" }"
 --       app = throttle defaultThrottleSettings st
 --               $ \_ f -> f (responseLBS status200 [] payload)
 --   Warp.run 3000 app
