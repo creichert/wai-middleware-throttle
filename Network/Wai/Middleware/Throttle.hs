@@ -83,8 +83,7 @@ data ThrottleSettings = ThrottleSettings
 
       -- Maximum size of the address cache in MB (similar to nginx)
       --
-      -- You can store approximately 160,000 addresses in 10MB with
-      -- \$binary_remote_addr.
+      -- With nginx, can store approximately 160,000 addresses in 10MB.
       -- , throttleCacheSize :: !Integer
 
       -- | Burst rate
@@ -109,19 +108,15 @@ defaultThrottleSettings
       }
   where
     bshow = BS.pack . show
-    -- remaining = bshow (if 5000 - c < 0
-    --                      then 0
-    --                      else 5000 - c)
     onThrottled' rt =
       responseLBS
         Http.status429
         [ ("Content-Type", "application/json")
-          -- , ("X-RateLimit-Limit", "5000")
+          -- , ("X-RateLimit-Limit", limit)
           -- , ("X-RateLimit-Remaining", remaining)
-        , ("X-RateLimit-Reset",
-             bshow (fromIntegral rt / 1000000.0 :: Double))
+          -- , ("X-RateLimit-Reset",
+          --      bshow (fromIntegral rt / 1000000.0 :: Double))
         ]
-        -- match YesodAuth error message renderer
         "{\"message\":\"Too many requests.\"}"
 
 
