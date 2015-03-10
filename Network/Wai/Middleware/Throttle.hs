@@ -102,7 +102,7 @@ defaultThrottleSettings
         -- , throttleZone        = "" -- empty zone
       , throttleRate        = 1  -- req / sec
         -- , throttleCacheSize   = 10 -- 10M address cache
-      , throttleBurst       = 1  -- 5 concurrent requests
+      , throttleBurst       = 1  -- concurrent requests
       , onThrottled         = onThrottled'
       }
   where
