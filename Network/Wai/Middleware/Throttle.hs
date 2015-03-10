@@ -107,7 +107,6 @@ defaultThrottleSettings
       , onThrottled         = onThrottled'
       }
   where
-    bshow = BS.pack . show
     onThrottled' rt =
       responseLBS
         Http.status429
