@@ -28,7 +28,6 @@ library
   build-depends:       base                  >= 4.6 && < 5.0
                      , wai                   >= 3.0
                      , containers
-                     , bytestring
                      , transformers
                      , network
                      , http-types

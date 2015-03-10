@@ -46,7 +46,6 @@ module Network.Wai.Middleware.Throttle (
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (liftM)
-import qualified Data.ByteString.Char8          as BS
 import qualified Data.IntMap                    as IM
 import           GHC.Word                       (Word64)
 import qualified Network.HTTP.Types.Status      as Http
@@ -107,7 +106,7 @@ defaultThrottleSettings
       , onThrottled         = onThrottled'
       }
   where
-    onThrottled' rt =
+    onThrottled' _ =
       responseLBS
         Http.status429
         [ ("Content-Type", "application/json")
