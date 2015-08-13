@@ -45,8 +45,12 @@ module Network.Wai.Middleware.Throttle (
 
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
-import           Control.Monad                  (liftM)
+import           Control.Monad                  (liftM,join)
+import           Data.Functor                   ((<$>))
+import           Data.Function                  (on)
+import           Data.Hashable                  (hash)
 import qualified Data.IntMap                    as IM
+import           Data.List                      (unionBy)
 import           GHC.Word                       (Word64)
 import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
@@ -56,8 +60,9 @@ import           Network.Wai
 newtype WaiThrottle = WT (TVar ThrottleState)
 
 
+
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'
-data ThrottleState = ThrottleState !(IM.IntMap TokenBucket)
+data ThrottleState = ThrottleState !(IM.IntMap [(HostAddress6,TokenBucket)])
 
 
 -- | Settings which control various behaviors in the middleware.
@@ -142,9 +147,12 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
   where
     throttleReq = do
 
-      let SockAddrInet _ remoteAddr = remoteHost req
+      let remoteAddr = case remoteHost req of
+                        SockAddrInet _ ip4      -> (0,0,0, ip4)
+                        SockAddrInet6 _ _ ip6 _ -> ip6
+                        s                       -> error ("Network.Wai.Middleware.Throttle - unsupported socket type : " ++ show s)
       throttleState  <- atomically $ readTVar tmap
-      (tst, success) <- throttleReq' (fromIntegral remoteAddr) throttleState
+      (tst, success) <- throttleReq' remoteAddr throttleState
 
       -- write the throttle state back
       atomically $ writeTVar tmap (ThrottleState tst)
@@ -156,7 +164,12 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
           invRate     = toInvRate (fromInteger throttleRate :: Double)
           burst       = fromInteger throttleBurst
 
-      bucket    <- maybe newTokenBucket return $ IM.lookup remoteAddr m
+      bucket    <- maybe newTokenBucket return $ addressToBucket remoteAddr m
       remaining <- tokenBucketTryAlloc1 bucket burst invRate
 
-      return (IM.insert remoteAddr bucket m, remaining)
+      return (insertBucket remoteAddr bucket m, remaining)
+
+    addressToBucket remoteAddr m = join (lookup remoteAddr <$> IM.lookup (hash remoteAddr) m)
+    insertBucket remoteAddr bucket m =
+      let col = unionBy ((==) `on` fst)
+      in IM.insertWith col (hash remoteAddr) [(remoteAddr, bucket)] m
