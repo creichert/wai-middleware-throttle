@@ -29,11 +29,11 @@ library
                      , wai                   >= 3.0
                      , containers
                      , transformers
-                     , network
+                     , network               < 3.6.1
                      , http-types
                      , stm
                      , token-bucket
-                     , hashable
+                     , hashable              >= 1.2
 
   if impl(ghc < 7.8)
     build-depends:
