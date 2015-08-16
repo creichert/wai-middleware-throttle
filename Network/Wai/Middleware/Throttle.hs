@@ -71,13 +71,13 @@ instance Eq Address where
   Address (SockAddrInet _ a)      == Address (SockAddrInet _ b)      = a == b
   Address (SockAddrInet6 _ _ a _) == Address (SockAddrInet6 _ _ b _) = a == b
   Address (SockAddrUnix a)        == Address (SockAddrUnix b)        = a == b
-  a == b = False -- not same so cant be equal
+  _ == _ = False -- not same constructor so cant be equal
 
 instance Ord Address where
   Address (SockAddrInet _ a)      <= Address (SockAddrInet _ b)      = a <= b
   Address (SockAddrInet6 _ _ a _) <= Address (SockAddrInet6 _ _ b _) = a <= b
   Address (SockAddrUnix a)        <= Address (SockAddrUnix b)        = a <= b
-  a <= b = a <= b -- not same so use builtin ordering
+  Address a <= Address b = a <= b -- not same constructor so use builtin ordering
 
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'
 data ThrottleState = ThrottleState !(IM.IntMap [(Address,TokenBucket)])
