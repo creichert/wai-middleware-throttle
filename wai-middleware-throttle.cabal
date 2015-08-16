@@ -29,7 +29,7 @@ library
                      , wai                   >= 3.0
                      , containers
                      , transformers
-                     , network               < 3.6.1
+                     , network               < 2.6.1
                      , http-types
                      , stm
                      , token-bucket
