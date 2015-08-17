@@ -25,6 +25,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE CPP   #-}
 
 module Network.Wai.Middleware.Throttle (
 
@@ -56,6 +57,9 @@ import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
 import           Network.Wai
 
+#ifndef MIN_VERSION_network
+#define MIN_VERSION_network(a,b,c) 1
+#endif
 
 newtype WaiThrottle = WT (TVar ThrottleState)
 
@@ -66,17 +70,26 @@ instance Hashable Address where
   hashWithSalt s (Address (SockAddrInet _ a))      = hashWithSalt s a
   hashWithSalt s (Address (SockAddrInet6 _ _ a _)) = hashWithSalt s a
   hashWithSalt s (Address (SockAddrUnix a))        = hashWithSalt s a
+#if MIN_VERSION_network(2,6,1)
+  hashWithSalt s (Address (SockAddrCan a))         = hashWithSalt s a
+#endif
 
 instance Eq Address where
   Address (SockAddrInet _ a)      == Address (SockAddrInet _ b)      = a == b
   Address (SockAddrInet6 _ _ a _) == Address (SockAddrInet6 _ _ b _) = a == b
   Address (SockAddrUnix a)        == Address (SockAddrUnix b)        = a == b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         == Address (SockAddrCan b)         = a == b
+#endif
   _ == _ = False -- not same constructor so cant be equal
 
 instance Ord Address where
   Address (SockAddrInet _ a)      <= Address (SockAddrInet _ b)      = a <= b
   Address (SockAddrInet6 _ _ a _) <= Address (SockAddrInet6 _ _ b _) = a <= b
   Address (SockAddrUnix a)        <= Address (SockAddrUnix b)        = a <= b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         <= Address (SockAddrCan b)         = a <= b
+#endif
   Address a <= Address b = a <= b -- not same constructor so use builtin ordering
 
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'

@@ -29,11 +29,15 @@ library
                      , wai                   >= 3.0
                      , containers
                      , transformers
-                     , network               < 2.6.1
+                     , network               >= 2.1
                      , http-types
                      , stm
                      , token-bucket
                      , hashable              >= 1.2
+
+  other-extensions: CPP
+                    OverloadedStrings
+                    RecordWildCards
 
   if impl(ghc < 7.8)
     build-depends:
