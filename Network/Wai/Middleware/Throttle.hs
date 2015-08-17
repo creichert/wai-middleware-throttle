@@ -25,6 +25,7 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE CPP   #-}
 
 module Network.Wai.Middleware.Throttle (
 
@@ -48,7 +49,7 @@ import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (liftM,join)
 import           Data.Functor                   ((<$>))
 import           Data.Function                  (on)
-import           Data.Hashable                  (hash)
+import           Data.Hashable                  (hash,hashWithSalt,Hashable)
 import qualified Data.IntMap                    as IM
 import           Data.List                      (unionBy)
 import           GHC.Word                       (Word64)
@@ -56,13 +57,43 @@ import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
 import           Network.Wai
 
+#ifndef MIN_VERSION_network
+#define MIN_VERSION_network(a,b,c) 1
+#endif
 
 newtype WaiThrottle = WT (TVar ThrottleState)
 
 
+newtype Address = Address SockAddr
+
+instance Hashable Address where
+  hashWithSalt s (Address (SockAddrInet _ a))      = hashWithSalt s a
+  hashWithSalt s (Address (SockAddrInet6 _ _ a _)) = hashWithSalt s a
+  hashWithSalt s (Address (SockAddrUnix a))        = hashWithSalt s a
+#if MIN_VERSION_network(2,6,1)
+  hashWithSalt s (Address (SockAddrCan a))         = hashWithSalt s a
+#endif
+
+instance Eq Address where
+  Address (SockAddrInet _ a)      == Address (SockAddrInet _ b)      = a == b
+  Address (SockAddrInet6 _ _ a _) == Address (SockAddrInet6 _ _ b _) = a == b
+  Address (SockAddrUnix a)        == Address (SockAddrUnix b)        = a == b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         == Address (SockAddrCan b)         = a == b
+#endif
+  _ == _ = False -- not same constructor so cant be equal
+
+instance Ord Address where
+  Address (SockAddrInet _ a)      <= Address (SockAddrInet _ b)      = a <= b
+  Address (SockAddrInet6 _ _ a _) <= Address (SockAddrInet6 _ _ b _) = a <= b
+  Address (SockAddrUnix a)        <= Address (SockAddrUnix b)        = a <= b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         <= Address (SockAddrCan b)         = a <= b
+#endif
+  Address a <= Address b = a <= b -- not same constructor so use builtin ordering
 
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'
-data ThrottleState = ThrottleState !(IM.IntMap [(HostAddress6,TokenBucket)])
+data ThrottleState = ThrottleState !(IM.IntMap [(Address,TokenBucket)])
 
 
 -- | Settings which control various behaviors in the middleware.
@@ -147,10 +178,7 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
   where
     throttleReq = do
 
-      let remoteAddr = case remoteHost req of
-                        SockAddrInet _ ip4      -> (0,0,0, ip4)
-                        SockAddrInet6 _ _ ip6 _ -> ip6
-                        s                       -> error ("Network.Wai.Middleware.Throttle - unsupported socket type : " ++ show s)
+      let remoteAddr = Address . remoteHost $ req
       throttleState  <- atomically $ readTVar tmap
       (tst, success) <- throttleReq' remoteAddr throttleState
 
