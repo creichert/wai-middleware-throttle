@@ -23,9 +23,9 @@
 --   Warp.run 3000 app
 -- @
 
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE CPP   #-}
 
 module Network.Wai.Middleware.Throttle (
 
@@ -44,12 +44,12 @@ module Network.Wai.Middleware.Throttle (
     , defaultThrottleSettings
     ) where
 
+import           Control.Applicative            ((<$>))
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
-import           Control.Monad                  (liftM,join)
-import           Data.Functor                   ((<$>))
+import           Control.Monad                  (join, liftM)
 import           Data.Function                  (on)
-import           Data.Hashable                  (hash,hashWithSalt,Hashable)
+import           Data.Hashable                  (Hashable, hash, hashWithSalt)
 import qualified Data.IntMap                    as IM
 import           Data.List                      (unionBy)
 import           GHC.Word                       (Word64)
@@ -100,29 +100,20 @@ data ThrottleState = ThrottleState !(IM.IntMap [(Address,TokenBucket)])
 data ThrottleSettings = ThrottleSettings
     {
       -- | Determines whether the 'Request' is throttled
-      isThrottled   :: !(Request -> IO Bool)
+      isThrottled    :: !(Request -> IO Bool)
 
       -- | Function to run when the request is throttled.
       --
       -- The first argument is a 'Word64' containing the amount
       -- of microseconds until the next retry should be attempted
-    , onThrottled   :: !(Word64 -> Response)
-
-      -- Zone name
-      --
-      -- TODO use list of zones (rules)
-      -- , throttleZone      :: !T.Text
+    , onThrottled    :: !(Word64 -> Response)
 
       -- | Rate
-    , throttleRate  :: !Integer  -- requests / throttlePeriod
+    , throttleRate   :: !Integer  -- requests / throttlePeriod
     , throttlePeriod :: !Integer -- microseconds
-      -- Maximum size of the address cache in MB (similar to nginx)
-      --
-      -- With nginx, can store approximately 160,000 addresses in 10MB.
-      -- , throttleCacheSize :: !Integer
 
       -- | Burst rate
-    , throttleBurst :: !Integer
+    , throttleBurst  :: !Integer
     }
 
 
@@ -135,10 +126,8 @@ defaultThrottleSettings :: ThrottleSettings
 defaultThrottleSettings
     = ThrottleSettings {
         isThrottled         = return . const True
-        -- , throttleZone        = "" -- empty zone
       , throttleRate        = 1  -- req / throttlePeriod
-      , throttlePeriod      = 10^6  -- microseconds
-        -- , throttleCacheSize   = 10 -- 10M address cache
+      , throttlePeriod      = 10^6 -- microseconds
       , throttleBurst       = 1  -- concurrent requests
       , onThrottled         = onThrottled'
       }
@@ -147,10 +136,6 @@ defaultThrottleSettings
       responseLBS
         Http.status429
         [ ("Content-Type", "application/json")
-          -- , ("X-RateLimit-Limit", limit)
-          -- , ("X-RateLimit-Remaining", remaining)
-          -- , ("X-RateLimit-Reset",
-          --      bshow (fromIntegral rt / 1000000.0 :: Double))
         ]
         "{\"message\":\"Too many requests.\"}"
 
@@ -160,9 +145,9 @@ defaultThrottleSettings
 -- Uses a 'Request's 'remoteHost' function to resolve the
 -- remote IP address.
 throttle :: ThrottleSettings
-            -> WaiThrottle
-            -> Application
-            -> Application
+         -> WaiThrottle
+         -> Application
+         -> Application
 throttle ThrottleSettings{..} (WT tmap) app req respond = do
 
     -- determine whether the request needs throttling
@@ -203,4 +188,3 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
     insertBucket remoteAddr bucket m =
       let col = unionBy ((==) `on` fst)
       in IM.insertWith col (hash remoteAddr) [(remoteAddr, bucket)] m
-
