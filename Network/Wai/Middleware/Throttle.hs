@@ -114,8 +114,8 @@ data ThrottleSettings = ThrottleSettings
       -- , throttleZone      :: !T.Text
 
       -- | Rate
-    , throttleRate  :: !Integer  -- requests / second
-
+    , throttleRate  :: !Integer  -- requests / throttlePeriod
+    , throttlePeriod :: !Integer -- microseconds
       -- Maximum size of the address cache in MB (similar to nginx)
       --
       -- With nginx, can store approximately 160,000 addresses in 10MB.
@@ -136,7 +136,8 @@ defaultThrottleSettings
     = ThrottleSettings {
         isThrottled         = return . const True
         -- , throttleZone        = "" -- empty zone
-      , throttleRate        = 1  -- req / sec
+      , throttleRate        = 1  -- req / throttlePeriod
+      , throttlePeriod      = 10^6  -- microseconds
         -- , throttleCacheSize   = 10 -- 10M address cache
       , throttleBurst       = 1  -- concurrent requests
       , onThrottled         = onThrottled'
@@ -188,7 +189,8 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
 
     throttleReq' remoteAddr (ThrottleState m) = do
 
-      let toInvRate r = round (1e6 / r)
+      let toInvRate r = round (period / r)
+          period     = (fromInteger throttlePeriod :: Double)
           invRate     = toInvRate (fromInteger throttleRate :: Double)
           burst       = fromInteger throttleBurst
 
@@ -201,3 +203,4 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
     insertBucket remoteAddr bucket m =
       let col = unionBy ((==) `on` fst)
       in IM.insertWith col (hash remoteAddr) [(remoteAddr, bucket)] m
+
