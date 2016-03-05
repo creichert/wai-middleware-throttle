@@ -1,6 +1,6 @@
 
 name:                wai-middleware-throttle
-version:             0.2.0.2
+version:             0.2.1.0
 license:             BSD3
 license-file:        LICENSE
 author:              Christopher Reichert
