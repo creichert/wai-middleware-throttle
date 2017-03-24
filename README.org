@@ -20,39 +20,3 @@ Rate Limit and Throttle WAI Requests
                  $ \_ f -> f (responseLBS status200 [] payload)
      Warp.run 3000 app
    #+END_SRC
-
-
-** Wishlist
-   - [ ] support for X-RateLimit-Limit and X-RateLimit-Remaining headers
-     /Whether or not they have these specific names/
-   - [ ] Burst or Sustained throttling similar to the Django
-     throttling framework:
-     #+BEGIN_SRC
-     REST_FRAMEWORK = {
-         'DEFAULT_THROTTLE_CLASSES': (
-             'example.throttles.BurstRateThrottle',
-             'example.throttles.SustainedRateThrottle'
-         ),
-         'DEFAULT_THROTTLE_RATES': {
-             'burst': '60/min',
-             'sustained': '1000/day'
-         }
-     }
-     #+END_SRC
-   - [ ] Zoned throttling
-     * multiple zones
-     #+BEGIN_SRC
-     http {
-       limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
-
-       ...
-
-       server {
-
-         ...
-
-         location /search/ {
-             limit_req zone=one burst=5;
-     }
-     #+END_SRC
-   - [ ] cache with size limit for managing the remote addresses
