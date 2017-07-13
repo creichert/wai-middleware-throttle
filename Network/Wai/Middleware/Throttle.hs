@@ -2,7 +2,7 @@
 -- |
 -- Module      : Network.Wai.Middleware.Throttle
 -- Description : WAI Request Throttling Middleware
--- Copyright   : (c) 2015 Christopher Reichert
+-- Copyright   : (c) 2015-2017 Christopher Reichert
 -- License     : BSD3
 -- Maintainer  : Christopher Reichert <creichert07@gmail.com>
 -- Stability   : experimental
@@ -36,15 +36,16 @@ module Network.Wai.Middleware.Throttle (
       --
       -- Essentially, a TVar with a HashMap for indexing
       -- remote IP address
-    , WaiThrottle
-    , initThrottler
+    , WaiThrottle, CustomWaiThrottle
+    , initThrottler, initCustomThrottler
 
       -- | Throttle settings and configuration
     , ThrottleSettings(..)
     , defaultThrottleSettings
+
+    , RequestHashable(..)
     ) where
 
-import           Control.Applicative            ((<$>))
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (join, liftM)
@@ -61,7 +62,8 @@ import           Network.Wai
 #define MIN_VERSION_network(a,b,c) 1
 #endif
 
-newtype WaiThrottle = WT (TVar ThrottleState)
+newtype CustomWaiThrottle a = WT (TVar (ThrottleState a))
+type WaiThrottle = CustomWaiThrottle Address
 
 
 newtype Address = Address SockAddr
@@ -93,7 +95,7 @@ instance Ord Address where
   Address a <= Address b = a <= b -- not same constructor so use builtin ordering
 
 -- | A 'HashMap' mapping the remote IP address to a 'TokenBucket'
-data ThrottleState = ThrottleState !(IM.IntMap [(Address,TokenBucket)])
+data ThrottleState a = ThrottleState !(IM.IntMap [(a,TokenBucket)])
 
 
 -- | Settings which control various behaviors in the middleware.
@@ -118,7 +120,10 @@ data ThrottleSettings = ThrottleSettings
 
 
 initThrottler :: IO WaiThrottle
-initThrottler = liftM WT $ newTVarIO $ ThrottleState IM.empty
+initThrottler = initCustomThrottler
+
+initCustomThrottler :: IO (CustomWaiThrottle a)
+initCustomThrottler = liftM WT $ newTVarIO $ ThrottleState IM.empty
 
 
 -- | Default settings to throttle requests.
@@ -139,13 +144,19 @@ defaultThrottleSettings
         ]
         "{\"message\":\"Too many requests.\"}"
 
+class (Eq a, Ord a, Hashable a) => RequestHashable a where
+  requestToKey :: Monad m => Request -> m a
+
+instance RequestHashable Address where
+  requestToKey = pure . Address . remoteHost
 
 -- | WAI Request Throttling Middleware.
 --
 -- Uses a 'Request's 'remoteHost' function to resolve the
 -- remote IP address.
-throttle :: ThrottleSettings
-         -> WaiThrottle
+throttle :: RequestHashable a
+         => ThrottleSettings
+         -> CustomWaiThrottle a
          -> Application
          -> Application
 throttle ThrottleSettings{..} (WT tmap) app req respond = do
@@ -164,27 +175,26 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
   where
     throttleReq = do
 
-      let remoteAddr = Address . remoteHost $ req
+      k <- requestToKey req
       throttleState  <- atomically $ readTVar tmap
-      (tst, success) <- throttleReq' remoteAddr throttleState
+      (tst, success) <- throttleReq' k throttleState
 
       -- write the throttle state back
       atomically $ writeTVar tmap (ThrottleState tst)
       return success
 
-    throttleReq' remoteAddr (ThrottleState m) = do
+    throttleReq' k (ThrottleState m) = do
 
       let toInvRate r = round (period / r)
-          period     = (fromInteger throttlePeriod :: Double)
+          period      = (fromInteger throttlePeriod :: Double)
           invRate     = toInvRate (fromInteger throttleRate :: Double)
           burst       = fromInteger throttleBurst
 
-      bucket    <- maybe newTokenBucket return $ addressToBucket remoteAddr m
+      bucket    <- maybe newTokenBucket return $ join $ lookup k <$> IM.lookup (hash k) m
       remaining <- tokenBucketTryAlloc1 bucket burst invRate
 
-      return (insertBucket remoteAddr bucket m, remaining)
+      return (insertBucket k bucket m, remaining)
 
-    addressToBucket remoteAddr m = join (lookup remoteAddr <$> IM.lookup (hash remoteAddr) m)
-    insertBucket remoteAddr bucket m =
+    insertBucket k bucket m =
       let col = unionBy ((==) `on` fst)
-      in IM.insertWith col (hash remoteAddr) [(remoteAddr, bucket)] m
+      in IM.insertWith col (hash k) [(k, bucket)] m
