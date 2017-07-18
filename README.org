@@ -11,12 +11,26 @@
 
 Rate Limit and Throttle WAI Requests
 
-** Example
-   #+BEGIN_SRC haskell
-   main = do
-     st <- initThrottler
-     let payload  = "{ \"api\", \"return data\" }"
-         app = throttle defaultThrottleSettings st
-                 $ \_ f -> f (responseLBS status200 [] payload)
-     Warp.run 3000 app
-   #+END_SRC
+** Examples
+**** Default (IP address throttler)
+     #+BEGIN_SRC haskell
+     main = do
+       st <- initThrottler
+       let payload  = "{ \"api\", \"return data\" }"
+           app = throttle defaultThrottleSettings st
+                   $ \_ f -> f (responseLBS status200 [] payload)
+       Warp.run 3000 app
+     #+END_SRC
+**** Custom throttler (like an Authorization header)
+     #+BEGIN_SRC haskell
+     newtype MyData = MyData { unData :: Text } deriving (Eq, Ord, Show, Hashable)
+     instance RequestHashable MyData where
+       requestToKey = maybe (throwError "No authorization header") (pure . decodeUtf8 . snd) $
+         find ((== hAuthorization) . fst) . requestHeaders
+     main = do
+       st <- initCustomThrottler :: IO (CustomWaiThrottle MyData)
+       let payload = "{ \"api\", \"return data\" }"
+           app = throttle defaultThrottleSettings st
+                   $ \_ f -> f (responseLBS status200 [] payload)
+       Warp.run 3000 app
+     #+END_SRC
