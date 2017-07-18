@@ -23,10 +23,6 @@
 --   Warp.run 3000 app
 -- @
 
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-
 module Network.Wai.Middleware.Throttle (
 
       -- | Wai Request Throttling Middleware
@@ -46,6 +42,7 @@ module Network.Wai.Middleware.Throttle (
     , RequestHashable(..)
     ) where
 
+import           Control.Applicative            ((<$>), pure)
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (join, liftM)
