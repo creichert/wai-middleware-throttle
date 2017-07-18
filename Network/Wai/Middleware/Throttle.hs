@@ -155,7 +155,7 @@ defaultThrottleSettings
         ("{\"message\":\"" <> toLazyByteString (stringUtf8 $ unpack reason) <> "\"}")
 
 class (Eq a, Ord a, Hashable a) => RequestHashable a where
-  requestToKey :: Monad m => Request -> ExceptT Text m a
+  requestToKey :: (Functor m, Monad m) => Request -> ExceptT Text m a
 
 instance RequestHashable Address where
   requestToKey = pure . Address . remoteHost
