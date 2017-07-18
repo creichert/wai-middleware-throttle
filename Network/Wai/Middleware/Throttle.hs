@@ -64,7 +64,10 @@ import           Network.Wai
 #define MIN_VERSION_network(a,b,c) 1
 #endif
 
+-- | A throttle for a type implementing 'RequestHashable'
 newtype CustomWaiThrottle a = WT (TVar (ThrottleState a))
+
+-- | A synonym for an IP address throttle
 type WaiThrottle = CustomWaiThrottle Address
 
 
@@ -109,8 +112,12 @@ data ThrottleSettings = ThrottleSettings
       -- | Function to run when the request is throttled.
       --
       -- The first argument is a 'Word64' containing the amount
-      -- of microseconds until the next retry should be attempted
+      -- of microseconds until the next retry should be attempted.
     , onThrottled    :: !(Word64 -> Response)
+
+      -- | Function to run when the throttler fails to extract the key.
+      --
+      -- The first argument is a 'Text' containing the error message.
     , onRequestError :: !(Text -> Response)
 
       -- | Rate
@@ -122,9 +129,11 @@ data ThrottleSettings = ThrottleSettings
     }
 
 
+-- |Initialize an IP address throttler
 initThrottler :: IO WaiThrottle
 initThrottler = initCustomThrottler
 
+-- |Initialize a "custom" throttler that implements the 'RequestHashable' class
 initCustomThrottler :: IO (CustomWaiThrottle a)
 initCustomThrottler = liftM WT $ newTVarIO $ ThrottleState IM.empty
 
@@ -154,6 +163,7 @@ defaultThrottleSettings
         ]
         ("{\"message\":\"" <> toLazyByteString (stringUtf8 $ unpack reason) <> "\"}")
 
+-- | A class extracting a hashable key from a 'Request' to store in an in-memory map
 class (Eq a, Ord a, Hashable a) => RequestHashable a where
   requestToKey :: (Functor m, Monad m) => Request -> ExceptT Text m a
 
