@@ -49,10 +49,15 @@ module Network.Wai.Middleware.Throttle (
 import           Control.Concurrent.STM
 import           Control.Concurrent.TokenBucket
 import           Control.Monad                  (join, liftM)
+import           Control.Monad.IO.Class         (liftIO)
+import           Control.Monad.Except           (ExceptT, runExceptT)
+import           Data.ByteString.Builder        (stringUtf8, toLazyByteString)
 import           Data.Function                  (on)
 import           Data.Hashable                  (Hashable, hash, hashWithSalt)
 import qualified Data.IntMap                    as IM
 import           Data.List                      (unionBy)
+import           Data.Monoid                    ((<>))
+import           Data.Text                      (Text, unpack)
 import           GHC.Word                       (Word64)
 import qualified Network.HTTP.Types.Status      as Http
 import           Network.Socket
@@ -109,6 +114,7 @@ data ThrottleSettings = ThrottleSettings
       -- The first argument is a 'Word64' containing the amount
       -- of microseconds until the next retry should be attempted
     , onThrottled    :: !(Word64 -> Response)
+    , onRequestError :: !(Text -> Response)
 
       -- | Rate
     , throttleRate   :: !Integer  -- requests / throttlePeriod
@@ -135,6 +141,7 @@ defaultThrottleSettings
       , throttlePeriod      = 10^6 -- microseconds
       , throttleBurst       = 1  -- concurrent requests
       , onThrottled         = onThrottled'
+      , onRequestError      = onRequestError'
       }
   where
     onThrottled' _ =
@@ -143,9 +150,15 @@ defaultThrottleSettings
         [ ("Content-Type", "application/json")
         ]
         "{\"message\":\"Too many requests.\"}"
+    onRequestError' reason =
+      responseLBS
+        Http.status400
+        [ ("Content-Type", "application/json")
+        ]
+        ("{\"message\":\"" <> toLazyByteString (stringUtf8 $ unpack reason) <> "\"}")
 
 class (Eq a, Ord a, Hashable a) => RequestHashable a where
-  requestToKey :: Monad m => Request -> m a
+  requestToKey :: Monad m => Request -> ExceptT Text m a
 
 instance RequestHashable Address where
   requestToKey = pure . Address . remoteHost
@@ -166,21 +179,22 @@ throttle ThrottleSettings{..} (WT tmap) app req respond = do
 
     -- seconds remaining (if the request failed), 0 otherwise.
     remaining <- if reqIsThrottled
-                   then throttleReq
-                   else return 0
+                   then runExceptT throttleReq
+                   else return $ Right 0
 
-    if remaining /= 0
-        then respond $ onThrottled remaining
-        else app req respond
+    case remaining of
+      Left err -> respond $ onRequestError err
+      Right 0 -> app req respond
+      Right n -> respond $ onThrottled n
   where
     throttleReq = do
 
       k <- requestToKey req
-      throttleState  <- atomically $ readTVar tmap
-      (tst, success) <- throttleReq' k throttleState
+      throttleState  <- liftIO . atomically $ readTVar tmap
+      (tst, success) <- liftIO $ throttleReq' k throttleState
 
       -- write the throttle state back
-      atomically $ writeTVar tmap (ThrottleState tst)
+      liftIO . atomically $ writeTVar tmap (ThrottleState tst)
       return success
 
     throttleReq' k (ThrottleState m) = do
