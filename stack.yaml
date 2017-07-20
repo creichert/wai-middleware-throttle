@@ -1,5 +1,6 @@
 flags: {}
 packages:
 - '.'
+- script
 extra-deps: []
 resolver: lts-5.4
