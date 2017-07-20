@@ -1,7 +1,8 @@
 name: script
 version: '1.0'
 maintainer: Dan Fithian
-license: AllRightsReserved
+license: BSD3
+license-file: ../LICENSE
 
 default-extensions:
   - ConstraintKinds
