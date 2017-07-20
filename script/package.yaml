@@ -1,0 +1,62 @@
+name: script
+version: '1.0'
+maintainer: Dan Fithian
+license: AllRightsReserved
+
+default-extensions:
+  - ConstraintKinds
+  - DataKinds
+  - DeriveDataTypeable
+  - DeriveGeneric
+  - EmptyDataDecls
+  - FlexibleContexts
+  - FlexibleInstances
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - LambdaCase
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - NoMonomorphismRestriction
+  - OverloadedStrings
+  - PackageImports
+  - PolyKinds
+  - QuasiQuotes
+  - RankNTypes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TemplateHaskell
+  - TupleSections
+  - TypeFamilies
+  - TypeOperators
+  - ViewPatterns
+
+ghc-options:
+  - -Wall
+  - -Werror
+  - -fwarn-tabs
+  - -threaded
+  - -O2
+  - -rtsopts
+  - -with-rtsopts=-N
+  - -with-rtsopts=-T
+
+dependencies:
+  - base
+  - classy-prelude
+  - criterion
+  - hashable
+  - http-types
+  - lens
+  - mtl
+  - text
+  - wai
+  - wai-middleware-throttle
+  - warp
+  - wreq
+
+executables:
+  benchmark:
+    main: benchmark.hs
+    source-dirs: .
