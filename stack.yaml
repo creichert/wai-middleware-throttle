@@ -3,4 +3,4 @@ packages:
 - '.'
 - script
 extra-deps: []
-resolver: lts-5.4
+resolver: nightly-2017-07-02

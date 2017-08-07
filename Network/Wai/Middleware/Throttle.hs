@@ -143,9 +143,9 @@ defaultThrottleSettings :: ThrottleSettings
 defaultThrottleSettings
     = ThrottleSettings {
         isThrottled         = return . const True
-      , throttleRate        = 1  -- req / throttlePeriod
-      , throttlePeriod      = 10^6 -- microseconds
-      , throttleBurst       = 1  -- concurrent requests
+      , throttleRate        = 1 :: Integer  -- req / throttlePeriod
+      , throttlePeriod      = 1000000 :: Integer -- microseconds
+      , throttleBurst       = 1 :: Integer -- concurrent requests
       , onThrottled         = onThrottled'
       , onRequestError      = onRequestError'
       }
