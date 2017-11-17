@@ -20,7 +20,7 @@ cache:
 # file.
 env:
   - ARGS=""
-  - ARGS="--resolver lts-7"
+  - ARGS="--resolver lts-7 -j1"
   - ARGS="--resolver lts-8"
   - ARGS="--resolver lts"
   - ARGS="--resolver nightly"
