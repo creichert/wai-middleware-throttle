@@ -1,14 +1,23 @@
-language: haskell
-env:
- #- GHCVER=7.4.2 CABALVER=1.18
- - GHCVER=7.6.3 CABALVER=1.18
- - GHCVER=7.8.4 CABALVER=1.18
- - GHCVER=7.10.1 CABALVER=1.22
- - GHCVER=head CABALVER=head
+language: c
+
+# explicitly request container-based infrastructure
+sudo: false
 
 matrix:
+  include:
+    - env: CABALVER=1.16 GHCVER=7.6.3
+      addons: {apt: {packages: [cabal-install-1.16,ghc-7.6.3], sources: [hvr-ghc]}}
+    - env: CABALVER=1.18 GHCVER=7.8.4
+      addons: {apt: {packages: [cabal-install-1.18,ghc-7.8.4], sources: [hvr-ghc]}}
+    - env: CABALVER=1.22 GHCVER=7.10.1
+      addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.1],sources: [hvr-ghc]}}
+    - env: CABALVER=1.22 GHCVER=8.0.2
+      addons: {apt: {packages: [cabal-install-1.22,ghc-8.0.2],sources: [hvr-ghc]}}
+    - env: CABALVER=head GHCVER=head
+      addons: {apt: {packages: [cabal-install-head,ghc-head],  sources: [hvr-ghc]}}
+
   allow_failures:
-   - env: GHCVER=head CABALVER=head
+   - env: CABALVER=head GHCVER=head
 
 before_install:
  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
@@ -19,7 +28,6 @@ before_install:
 
 install:
  - travis_retry cabal update
- - cabal install happy alex
  - cabal install --only-dependencies --enable-tests
 
 script:
