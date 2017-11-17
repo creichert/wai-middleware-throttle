@@ -2,7 +2,7 @@ module Main where
 
 import ClassyPrelude
 import Control.Concurrent (ThreadId, forkIO)
-import Control.Lens ((&), (.~), (?~))
+import Control.Lens ((&), (.~))
 import Control.Monad.Except (throwError)
 import Criterion (Benchmark, bench, bgroup, whnfIO)
 import Criterion.Main (defaultMain)
@@ -14,7 +14,7 @@ import Network.Wai.Middleware.Throttle
   ( CustomWaiThrottle, RequestHashable, ThrottleSettings
   , defaultThrottleSettings, initCustomThrottler, initThrottler, requestToKey
   , throttle, throttlePeriod )
-import Network.Wreq (checkStatus, defaults, getWith, header, postWith)
+import Network.Wreq (checkResponse, defaults, getWith, header, postWith)
 
 newtype Key = Key { unKey :: Text }
   deriving (Eq, Ord, Hashable)
@@ -37,7 +37,7 @@ benchmark name port =
   let endpoint = "http://localhost:" <> show port <> "/"
       options = defaults &
         header hAuthorization .~ ["BASIC foo"] &
-        checkStatus ?~ \ _ _ _ -> Nothing
+        checkResponse .~ Nothing
       doPost = postWith options endpoint ("foo" :: ByteString)
       doGet = getWith options endpoint
   in bgroup name [ bench "get" $ whnfIO doGet
