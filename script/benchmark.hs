@@ -14,7 +14,13 @@ import Network.Wai.Middleware.Throttle
   ( CustomWaiThrottle, RequestHashable, ThrottleSettings
   , defaultThrottleSettings, initCustomThrottler, initThrottler, requestToKey
   , throttle, throttlePeriod )
-import Network.Wreq (checkResponse, defaults, getWith, header, postWith)
+import Network.Wreq ( defaults, getWith, header, postWith
+#if !MIN_VERSION_wreq(0,5,0)
+                    , checkStatus
+#else
+                    , checkResponse
+#endif
+                    )
 
 newtype Key = Key { unKey :: Text }
   deriving (Eq, Ord, Hashable)
@@ -37,7 +43,11 @@ benchmark name port =
   let endpoint = "http://localhost:" <> show port <> "/"
       options = defaults &
         header hAuthorization .~ ["BASIC foo"] &
+#if !MIN_VERSION_wreq(0,5,0)
+        checkStatus .~ Just (\ _ _ _ -> Nothing)
+#else
         checkResponse .~ Nothing
+#endif
       doPost = postWith options endpoint ("foo" :: ByteString)
       doGet = getWith options endpoint
   in bgroup name [ bench "get" $ whnfIO doGet

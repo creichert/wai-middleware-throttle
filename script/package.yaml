@@ -6,6 +6,7 @@ license-file: ../LICENSE
 
 default-extensions:
   - ConstraintKinds
+  - CPP
   - DataKinds
   - DeriveDataTypeable
   - DeriveGeneric

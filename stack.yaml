@@ -4,4 +4,4 @@ packages:
 - script
 extra-deps:
 - token-bucket-0.1.0.1
-resolver: nightly-2017-11-17
+resolver: lts-9.13
