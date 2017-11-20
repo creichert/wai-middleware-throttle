@@ -2,7 +2,7 @@ module Main where
 
 import ClassyPrelude
 import Control.Concurrent (ThreadId, forkIO)
-import Control.Lens ((&), (.~))
+import Control.Lens ((&), (.~), (?~))
 import Control.Monad.Except (throwError)
 import Criterion (Benchmark, bench, bgroup, whnfIO)
 import Criterion.Main (defaultMain)
@@ -44,9 +44,9 @@ benchmark name port =
       options = defaults &
         header hAuthorization .~ ["BASIC foo"] &
 #if !MIN_VERSION_wreq(0,5,0)
-        checkStatus .~ Just (\ _ _ _ -> Nothing)
+        checkStatus ?~ (\ _ _ _ -> Nothing)
 #else
-        checkResponse .~ Nothing
+        checkResponse ?~ (\ _ _ -> pure ())
 #endif
       doPost = postWith options endpoint ("foo" :: ByteString)
       doGet = getWith options endpoint
