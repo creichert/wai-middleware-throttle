@@ -39,6 +39,7 @@ module Network.Wai.Middleware.Throttle (
     , ThrottleSettings(..)
     , defaultThrottleSettings
 
+    , Address(..)
     , RequestHashable(..)
     ) where
 
