@@ -15,7 +15,6 @@
 -- == Example
 --
 -- @
--- FIXME
 -- main = do
 --   let expirationSpec = TimeSpec 5 0 -- five seconds
 --   throttle <- newThrottle (defaultThrottleSettings expirationSpec) (const $ Right 1)
