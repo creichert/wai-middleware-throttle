@@ -103,7 +103,6 @@ retrieveCache throttle time throttleKey = do
       insertSTM throttleKey CacheStateInitializing cache Nothing
       pure CacheResultEmpty
 #else
--- |Internal use only. Retrieve a token bucket from the cache.
 retrieveCache :: (Eq a, Hashable a) => Throttle a -> TimeSpec -> a -> IO (CacheResult TokenBucket)
 retrieveCache throttle time throttleKey = do
   let cache = throttleCache throttle
