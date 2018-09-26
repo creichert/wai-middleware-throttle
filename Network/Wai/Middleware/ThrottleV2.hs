@@ -24,13 +24,19 @@
 -- @
 module Network.Wai.Middleware.ThrottleV2 where
 
+import Prelude hiding (lookup)
+
 import Control.Concurrent.TokenBucket (TokenBucket, newTokenBucket, tokenBucketTryAlloc1)
 import Control.Exception.Safe (onException)
+#if MIN_VERSION_cache(0,1,1)
 import Control.Monad.STM (STM, atomically)
 import Data.Cache (Cache, delete, insert, insertSTM, lookupSTM, newCache)
+#else
+import Data.Cache (Cache, delete, insert, insert', lookup, newCache)
+#endif
 import Data.Hashable (Hashable)
 import GHC.Word (Word64)
-import Network.HTTP.Types (tooManyRequests429)
+import Network.HTTP.Types.Status (status429)
 import Network.Wai (Application, Request, Response, responseLBS)
 import System.Clock (Clock (Monotonic), TimeSpec, getTime)
 
@@ -76,7 +82,7 @@ defaultThrottleSettings expirationInterval = ThrottleSettings
   , throttleSettingsBurst = 1
   , throttleSettingsCacheExpiration = expirationInterval
   , throttleSettingsIsThrottled = const True
-  , throttleSettingsOnThrottled = const $ responseLBS tooManyRequests429 [("Content-Type", "application/json")] "Too many requests."
+  , throttleSettingsOnThrottled = const $ responseLBS status429 [("Content-Type", "application/json")] "Too many requests."
   }
 
 -- |Initialize a throttle using settings and a way to extract the key from the request.
@@ -86,6 +92,7 @@ newThrottle throttleSettings@(ThrottleSettings {..}) throttleGetKey = do
   pure Throttle {..}
 
 -- |Internal use only. Retrieve a token bucket from the cache.
+#if MIN_VERSION_cache(0,1,1)
 retrieveCache :: (Eq a, Hashable a) => Throttle a -> TimeSpec -> a -> STM (CacheResult TokenBucket)
 retrieveCache throttle time throttleKey = do
   let cache = throttleCache throttle
@@ -95,6 +102,18 @@ retrieveCache throttle time throttleKey = do
     Nothing -> do
       insertSTM throttleKey CacheStateInitializing cache Nothing
       pure CacheResultEmpty
+#else
+-- |Internal use only. Retrieve a token bucket from the cache.
+retrieveCache :: (Eq a, Hashable a) => Throttle a -> TimeSpec -> a -> IO (CacheResult TokenBucket)
+retrieveCache throttle time throttleKey = do
+  let cache = throttleCache throttle
+  lookup cache throttleKey >>= \ case
+    Just (CacheStatePresent oldBucket) -> pure $ CacheResultExists oldBucket
+    Just CacheStateInitializing -> retrieveCache throttle time throttleKey
+    Nothing -> do
+      insert' cache Nothing throttleKey CacheStateInitializing
+      pure CacheResultEmpty
+#endif
 
 -- |Internal use only. Create a token bucket if it wasn't in the cache.
 processCacheResult :: (Eq a, Hashable a) => Throttle a -> a -> CacheResult TokenBucket -> IO TokenBucket
@@ -113,7 +132,11 @@ processCacheResult throttle throttleKey cacheResult = case cacheResult of
 retrieveOrInitializeBucket :: (Eq a, Hashable a) => Throttle a -> a -> IO TokenBucket
 retrieveOrInitializeBucket throttle throttleKey = do
   now <- getTime Monotonic
+#if MIN_VERSION_cache(0,1,1)
   cacheResult <- atomically $ retrieveCache throttle now throttleKey
+#else
+  cacheResult <- retrieveCache throttle now throttleKey
+#endif
   processCacheResult throttle throttleKey cacheResult
 
 -- |Internal use only. Throttle a request by the throttle key.

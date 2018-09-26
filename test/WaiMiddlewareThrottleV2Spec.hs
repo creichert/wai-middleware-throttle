@@ -6,7 +6,7 @@ import Control.Concurrent (threadDelay)
 import Control.Monad (replicateM, void)
 import Data.Cache (lookup)
 import Data.Maybe (isJust, isNothing)
-import Network.HTTP.Types (ok200, tooManyRequests429)
+import Network.HTTP.Types.Status (status200, status429)
 import Network.Wai (defaultRequest, responseLBS)
 import Network.Wai.Test (request, runSession, simpleStatus)
 import System.Clock (TimeSpec (TimeSpec))
@@ -49,8 +49,8 @@ spec = do
 
         it "throttles requests" $ \ throttle -> do
           let appl = runThrottle throttle $ \ _ f -> f $
-                responseLBS ok200 [] "ok"
+                responseLBS status200 [] "ok"
           statuses <- flip runSession appl $ do
             responses <- replicateM 100 (request defaultRequest)
             pure $ simpleStatus <$> responses
-          statuses `shouldSatisfy` elem tooManyRequests429
+          statuses `shouldSatisfy` elem status429
