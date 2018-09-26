@@ -17,10 +17,10 @@
 -- @
 -- FIXME
 -- main = do
---   st <- initThrottler
---   let payload  = "{ \"api\": \"return data\" }"
---       app = throttle defaultThrottleSettings st
---               $ \_ f -> f (responseLBS status200 [] payload)
+--   let expirationSpec = TimeSpec 5 0 -- five seconds
+--   throttle <- newThrottle (defaultThrottleSettings expirationSpec) (const $ Right 1)
+--   let appl = runThrottle throttle $ \ _ f -> f $
+--         responseLBS ok200 [] "ok"
 --   Warp.run 3000 app
 -- @
 module Network.Wai.Middleware.ThrottleV2 where

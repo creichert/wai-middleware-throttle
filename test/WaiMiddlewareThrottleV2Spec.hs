@@ -3,9 +3,12 @@ module WaiMiddlewareThrottleV2Spec where
 import Prelude hiding (lookup)
 
 import Control.Concurrent (threadDelay)
-import Control.Monad (void)
+import Control.Monad (replicateM, void)
 import Data.Cache (lookup)
 import Data.Maybe (isJust, isNothing)
+import Network.HTTP.Types (ok200, tooManyRequests429)
+import Network.Wai (defaultRequest, responseLBS)
+import Network.Wai.Test (request, runSession, simpleStatus)
 import System.Clock (TimeSpec (TimeSpec))
 import Test.Hspec (Spec, before, describe, it, shouldSatisfy)
 
@@ -18,19 +21,22 @@ spec = do
       runBefore :: IO (Throttle Int)
       runBefore = newThrottle (defaultThrottleSettings expirationSpec) (const $ Right 1)
   before runBefore $
-    describe "Request Throttling" $ do
+    describe "Network.Wai.Middleware.ThrottleV2" $ do
       describe "Bucket Operations" $ do
+
         it "initializes bucket when missing" $ \ throttle -> do
           let throttleKey = 1
               cache = throttleCache throttle
           void $ retrieveOrInitializeBucket throttle throttleKey
           lookup cache throttleKey >>= \ b -> b `shouldSatisfy` isJust
+
         it "retrieves bucket on subsequent calls" $ \ throttle -> do
           let throttleKey = 1
               cache = throttleCache throttle
           void $ retrieveOrInitializeBucket throttle throttleKey
           void $ retrieveOrInitializeBucket throttle throttleKey
           lookup cache throttleKey >>= \ b -> b `shouldSatisfy` isJust
+
         it "expires buckets" $ \ throttle -> do
           let throttleKey = 1
               cache = throttleCache throttle
@@ -38,3 +44,13 @@ spec = do
           lookup cache throttleKey >>= \ b -> b `shouldSatisfy` isJust
           threadDelay 5000000
           lookup cache throttleKey >>= \ b -> b `shouldSatisfy` isNothing
+
+      describe "Throttling Behavior" $ do
+
+        it "throttles requests" $ \ throttle -> do
+          let appl = runThrottle throttle $ \ _ f -> f $
+                responseLBS ok200 [] "ok"
+          statuses <- flip runSession appl $ do
+            responses <- replicateM 100 (request defaultRequest)
+            pure $ simpleStatus <$> responses
+          statuses `shouldSatisfy` elem tooManyRequests429

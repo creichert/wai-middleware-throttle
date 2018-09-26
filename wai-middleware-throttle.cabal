@@ -73,3 +73,4 @@ test-suite spec
                      , wai
                      , wai-extra
                      , wai-middleware-throttle
+  default-extensions: OverloadedStrings
