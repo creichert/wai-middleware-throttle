@@ -34,6 +34,7 @@ references:
       key: *default_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
   # nightly
 
@@ -51,6 +52,7 @@ references:
       key: *nightly_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
   # lts-12
 
@@ -68,6 +70,7 @@ references:
       key: *lts-12_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
   # lts-11
 
@@ -85,6 +88,7 @@ references:
       key: *lts-11_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
   # lts-10
 
@@ -102,6 +106,7 @@ references:
       key: *lts-10_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
   # lts-9
 
@@ -119,6 +124,7 @@ references:
       key: *lts-9_cache_key
       paths:
         - ~/.stack
+        - ~/.stack-work
 
 jobs:
   build:
