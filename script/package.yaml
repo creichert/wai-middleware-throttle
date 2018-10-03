@@ -1,5 +1,5 @@
 name: script
-version: '1.0'
+version: 0.3.0.0
 maintainer: Dan Fithian
 license: BSD3
 license-file: ../LICENSE
@@ -46,7 +46,9 @@ ghc-options:
 
 dependencies:
   - base
+  - bytestring
   - classy-prelude
+  - clock
   - criterion
   - hashable
   - http-types
