@@ -39,8 +39,8 @@ Rate Limit and Throttle WAI Requests
 
 ** Migration from Old API
 In migrating from the old API to the new one, the following changes are required:
-    - `defaultThrottleSettings` now takes another parameter for the expiration interval of the cache
-    - `initThrottler` now takes the settings
-      - `initCustomThrottler` now takes the settings and a function to extract the key that was
+    - ~defaultThrottleSettings~ now takes another parameter for the expiration interval of the cache
+    - ~initThrottler~ now takes the settings
+      - ~initCustomThrottler~ now takes the settings and a function to extract the key that was
         previously a method in the RequestHashable class
-    - `throttle` no longer takes the settings
+    - ~throttle~ no longer takes the settings
