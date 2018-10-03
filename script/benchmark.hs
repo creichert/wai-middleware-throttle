@@ -1,5 +1,8 @@
-module Main where
-
+{-
+simple benchmarking tool:
+stack install
+benchmark -o bench.html (or benchmark --json bench.json)
+-}
 import Prelude
 
 import Control.Concurrent (ThreadId, forkIO)
@@ -29,7 +32,7 @@ import Network.Wreq ( defaults, getWith, header, postWith
                     )
 import System.Clock (TimeSpec (TimeSpec))
 
-newtype Key = Key { unKey :: Text }
+newtype Key = Key Text
   deriving (Eq, Ord, Hashable)
 
 instance Throttle.RequestHashable Key where
