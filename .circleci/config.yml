@@ -6,7 +6,7 @@ workflows:
   build-and-test:
     jobs:
       - build
-      - build-nightly
+      #- build-nightly
       - build-lts-12
       - build-lts-11
       - build-lts-10
@@ -131,7 +131,7 @@ jobs:
     docker:
       - image: fpco/stack-build:lts-12.9
     environment:
-      STACK_ARGS: "--resolver nightly --jobs 2"
+      STACK_ARGS: "--jobs 2"
     steps:
       - checkout
       - *restore_stack_default_cache
