@@ -1,28 +1,4 @@
------------------------------------------------------------------------------
--- |
--- Module      : Network.Wai.Middleware.ThrottleV2
--- Description : WAI Request Throttling Middleware
--- Copyright   : (c) 2018 Daniel Fithian
--- License     : BSD3
--- Maintainer  : Daniel Fithian <daniel.m.fithian@gmail.com>
--- Stability   : experimental
--- Portability : POSIX
---
--- Uses a <https://en.wikipedia.org/wiki/Token_bucket Token Bucket>
--- algorithm (from the token-bucket package) to throttle WAI Requests.
---
---
--- == Example
---
--- @
--- main = do
---   let expirationSpec = TimeSpec 5 0 -- five seconds
---   throttle <- newThrottle (defaultThrottleSettings expirationSpec) (const $ Right 1)
---   let appl = runThrottle throttle $ \ _ f -> f $
---         responseLBS ok200 [] "ok"
---   Warp.run 3000 app
--- @
-module Network.Wai.Middleware.ThrottleV2 where
+module Network.Wai.Middleware.Throttle.Internal where
 
 import Prelude hiding (lookup)
 
@@ -34,11 +10,46 @@ import Data.Cache (Cache, delete, insert, insertSTM, lookupSTM, newCache)
 #else
 import Data.Cache (Cache, delete, insert, insert', lookup, newCache)
 #endif
-import Data.Hashable (Hashable)
+import Data.Hashable (Hashable, hashWithSalt)
 import GHC.Word (Word64)
 import Network.HTTP.Types.Status (status429)
-import Network.Wai (Application, Request, Response, responseLBS)
+import Network.Socket (SockAddr (SockAddrInet, SockAddrInet6, SockAddrUnix))
+#if MIN_VERSION_network(2,6,1)
+import Network.Socket (SockAddr (SockAddrCan))
+#endif
+import Network.Wai (Application, Request, Response, remoteHost, responseLBS)
 import System.Clock (Clock (Monotonic), TimeSpec, getTime)
+
+newtype Address = Address SockAddr
+
+instance Hashable Address where
+  hashWithSalt s (Address (SockAddrInet _ a))      = hashWithSalt s a
+  hashWithSalt s (Address (SockAddrInet6 _ _ a _)) = hashWithSalt s a
+  hashWithSalt s (Address (SockAddrUnix a))        = hashWithSalt s a
+#if MIN_VERSION_network(2,6,1)
+  hashWithSalt s (Address (SockAddrCan a))         = hashWithSalt s a
+#endif
+
+instance Eq Address where
+  Address (SockAddrInet _ a)      == Address (SockAddrInet _ b)      = a == b
+  Address (SockAddrInet6 _ _ a _) == Address (SockAddrInet6 _ _ b _) = a == b
+  Address (SockAddrUnix a)        == Address (SockAddrUnix b)        = a == b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         == Address (SockAddrCan b)         = a == b
+#endif
+  _ == _ = False -- not same constructor so cant be equal
+
+instance Ord Address where
+  Address (SockAddrInet _ a)      <= Address (SockAddrInet _ b)      = a <= b
+  Address (SockAddrInet6 _ _ a _) <= Address (SockAddrInet6 _ _ b _) = a <= b
+  Address (SockAddrUnix a)        <= Address (SockAddrUnix b)        = a <= b
+#if MIN_VERSION_network(2,6,1)
+  Address (SockAddrCan a)         <= Address (SockAddrCan b)         = a <= b
+#endif
+  Address a <= Address b = a <= b -- not same constructor so use builtin ordering
+
+extractAddress :: Request -> Either Response Address
+extractAddress = Right . Address . remoteHost
 
 data CacheState a
   = CacheStatePresent a
@@ -48,12 +59,12 @@ data CacheResult a
   = CacheResultExists a
   | CacheResultEmpty
 
--- |A throttle for a hashable key type. Initialize using 'newThrottle' with 'defaultThrottleSettings'.
+-- |A throttle for a hashable key type. Initialize using 'initThrottler' with 'defaultThrottleSettings'.
 data Throttle a = Throttle
   { throttleSettings :: ThrottleSettings
   -- ^ The throttle settings
   , throttleCache    :: Cache a (CacheState TokenBucket)
-  -- ^ The cache, initialized in 'newThrottle'
+  -- ^ The cache, initialized in 'initThrottler'
   , throttleGetKey   :: Request -> Either Response a
   -- ^ The function to extract a throttle key from a 'Network.Wai.Request'
   }
@@ -82,33 +93,37 @@ defaultThrottleSettings expirationInterval = ThrottleSettings
   , throttleSettingsBurst = 1
   , throttleSettingsCacheExpiration = expirationInterval
   , throttleSettingsIsThrottled = const True
-  , throttleSettingsOnThrottled = const $ responseLBS status429 [("Content-Type", "application/json")] "Too many requests."
+  , throttleSettingsOnThrottled = const $
+      responseLBS status429 [("Content-Type", "application/json")] "{\"message\":\"Too many requests.\"}"
   }
 
+initThrottler :: ThrottleSettings -> IO (Throttle Address)
+initThrottler = flip initCustomThrottler extractAddress
+
 -- |Initialize a throttle using settings and a way to extract the key from the request.
-newThrottle :: ThrottleSettings -> (Request -> Either Response a) -> IO (Throttle a)
-newThrottle throttleSettings@(ThrottleSettings {..}) throttleGetKey = do
+initCustomThrottler :: ThrottleSettings -> (Request -> Either Response a) -> IO (Throttle a)
+initCustomThrottler throttleSettings@(ThrottleSettings {..}) throttleGetKey = do
   throttleCache <- newCache $ Just throttleSettingsCacheExpiration
   pure Throttle {..}
 
 -- |Internal use only. Retrieve a token bucket from the cache.
 #if MIN_VERSION_cache(0,1,1)
 retrieveCache :: (Eq a, Hashable a) => Throttle a -> TimeSpec -> a -> STM (CacheResult TokenBucket)
-retrieveCache throttle time throttleKey = do
-  let cache = throttleCache throttle
+retrieveCache th time throttleKey = do
+  let cache = throttleCache th
   lookupSTM True throttleKey cache time >>= \ case
     Just (CacheStatePresent oldBucket) -> pure $ CacheResultExists oldBucket
-    Just CacheStateInitializing -> retrieveCache throttle time throttleKey
+    Just CacheStateInitializing -> retrieveCache th time throttleKey
     Nothing -> do
       insertSTM throttleKey CacheStateInitializing cache Nothing
       pure CacheResultEmpty
 #else
 retrieveCache :: (Eq a, Hashable a) => Throttle a -> TimeSpec -> a -> IO (CacheResult TokenBucket)
-retrieveCache throttle time throttleKey = do
-  let cache = throttleCache throttle
+retrieveCache th time throttleKey = do
+  let cache = throttleCache th
   lookup cache throttleKey >>= \ case
     Just (CacheStatePresent oldBucket) -> pure $ CacheResultExists oldBucket
-    Just CacheStateInitializing -> retrieveCache throttle time throttleKey
+    Just CacheStateInitializing -> retrieveCache th time throttleKey
     Nothing -> do
       insert' cache Nothing throttleKey CacheStateInitializing
       pure CacheResultEmpty
@@ -116,10 +131,10 @@ retrieveCache throttle time throttleKey = do
 
 -- |Internal use only. Create a token bucket if it wasn't in the cache.
 processCacheResult :: (Eq a, Hashable a) => Throttle a -> a -> CacheResult TokenBucket -> IO TokenBucket
-processCacheResult throttle throttleKey cacheResult = case cacheResult of
+processCacheResult th throttleKey cacheResult = case cacheResult of
   CacheResultExists bucket -> pure bucket
   CacheResultEmpty -> do
-    let cache = throttleCache throttle
+    let cache = throttleCache th
         initializeBucket = do
           bucket <- newTokenBucket
           insert cache throttleKey (CacheStatePresent bucket)
@@ -129,30 +144,30 @@ processCacheResult throttle throttleKey cacheResult = case cacheResult of
 
 -- |Internal use only. Retrieve or initialize a token bucket depending on if it was found in the cache.
 retrieveOrInitializeBucket :: (Eq a, Hashable a) => Throttle a -> a -> IO TokenBucket
-retrieveOrInitializeBucket throttle throttleKey = do
+retrieveOrInitializeBucket th throttleKey = do
   now <- getTime Monotonic
 #if MIN_VERSION_cache(0,1,1)
-  cacheResult <- atomically $ retrieveCache throttle now throttleKey
+  cacheResult <- atomically $ retrieveCache th now throttleKey
 #else
-  cacheResult <- retrieveCache throttle now throttleKey
+  cacheResult <- retrieveCache th now throttleKey
 #endif
-  processCacheResult throttle throttleKey cacheResult
+  processCacheResult th throttleKey cacheResult
 
 -- |Internal use only. Throttle a request by the throttle key.
 throttleRequest :: (Eq a, Hashable a) => Throttle a -> a -> IO Word64
-throttleRequest throttle throttleKey = do
-  bucket <- retrieveOrInitializeBucket throttle throttleKey
-  let settings = throttleSettings throttle
+throttleRequest th throttleKey = do
+  bucket <- retrieveOrInitializeBucket th throttleKey
+  let settings = throttleSettings th
       rate = throttleSettingsRate settings
       period = throttleSettingsPeriod settings
       burst = throttleSettingsBurst settings
   tokenBucketTryAlloc1 bucket burst $ round (period / rate)
 
 -- |Run the throttling middleware given a throttle that has been initialized.
-runThrottle :: (Eq a, Hashable a) => Throttle a -> Application -> Application
-runThrottle throttle app req respond = do
-  let settings = throttleSettings throttle
-      getKey = throttleGetKey throttle
+throttle :: (Eq a, Hashable a) => Throttle a -> Application -> Application
+throttle th app req respond = do
+  let settings = throttleSettings th
+      getKey = throttleGetKey th
       isThrottled = throttleSettingsIsThrottled settings
       onThrottled = throttleSettingsOnThrottled settings
   case isThrottled req of
@@ -160,7 +175,7 @@ runThrottle throttle app req respond = do
     True -> case getKey req of
       Left response     -> respond response
       Right throttleKey -> do
-        throttleRequest throttle throttleKey >>= \ case
+        throttleRequest th throttleKey >>= \ case
           0 -> app req respond
           n -> respond $ onThrottled n
 

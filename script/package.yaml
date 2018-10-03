@@ -52,7 +52,6 @@ dependencies:
   - hashable
   - http-types
   - lens
-  - mtl
   - random
   - text
   - wai
@@ -66,7 +65,4 @@ executables:
     source-dirs: .
   throttle-simple-server:
     main: throttle-simple-server.hs
-    source-dirs: .
-  throttle-simple-server-v2:
-    main: throttle-simple-server-v2.hs
     source-dirs: .
