@@ -17,7 +17,7 @@ Rate Limit and Throttle WAI Requests
      main = do
        let expirationInterval = TimeSpec 3600 0 -- expire after an hour
            settings = defaultThrottleSettings expirationInterval
-       th <- initThrottler settings extractAddress
+       th <- initThrottler settings
        let payload  = "{ \"api\", \"return data\" }"
            app = throttle th $ \_ f -> f (responseLBS status200 [] payload)
        Warp.run 3000 app
@@ -31,7 +31,7 @@ Rate Limit and Throttle WAI Requests
      main = do
        let expirationInterval = TimeSpec 3600 0 -- expire after an hour
            settings = defaultThrottleSettings expirationInterval
-       th <- initThrottler settings extractData
+       th <- initCustomThrottler settings extractData
        let payload = "{ \"api\", \"return data\" }"
            app = throttle th $ \_ f -> f (responseLBS status200 [] payload)
        Warp.run 3000 app
