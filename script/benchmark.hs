@@ -1,13 +1,20 @@
 module Main where
 
-import ClassyPrelude
+import Prelude
+
 import Control.Concurrent (ThreadId, forkIO)
 import Control.Lens ((&), (.~), (?~), over, _Left)
+import Control.Monad ((>=>), void)
 import Control.Monad.Except (throwError, runExcept)
 import Criterion (Benchmark, bench, bgroup, whnfIO)
 import Criterion.Main (defaultMain)
+import Data.ByteString (ByteString)
+import Data.ByteString.Lazy (fromStrict)
 import Data.ByteString.Builder (stringUtf8, toLazyByteString)
-import Data.Text (strip)
+import Data.Hashable (Hashable)
+import Data.Foldable (find)
+import Data.Text (Text, strip, stripPrefix, toCaseFold, unpack)
+import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Types (hAuthorization, status200, status400)
 import Network.Wai (requestBody, requestHeaders, responseLBS)
 import Network.Wai.Handler.Warp (run)

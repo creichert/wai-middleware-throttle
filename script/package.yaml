@@ -47,7 +47,6 @@ ghc-options:
 dependencies:
   - base
   - bytestring
-  - classy-prelude
   - clock
   - criterion
   - hashable
