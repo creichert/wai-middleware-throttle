@@ -27,10 +27,11 @@ module Network.Wai.Middleware.Throttle
   ) where
 
 import Network.Wai.Middleware.Throttle.Internal
-  ( Throttle (..)
+  ( Address (..)
+  , Throttle (..)
   , ThrottleSettings (..)
-  , Address (..)
   , defaultThrottleSettings
   , extractAddress
+  , initCustomThrottler
   , initThrottler
   , throttle )
