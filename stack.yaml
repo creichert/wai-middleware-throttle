@@ -1,7 +1,7 @@
-flags: {}
-packages:
-- '.'
-- script
+
 extra-deps:
-- token-bucket-0.1.0.1
-resolver: lts-9.13
+  - token-bucket-0.1.0.1
+packages:
+  - '.'
+  - script
+resolver: lts-12.10
