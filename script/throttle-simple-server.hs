@@ -15,6 +15,7 @@ import qualified Data.ByteString.Char8 as C8
 import Data.ByteString.Lazy (fromStrict)
 import Data.Hashable (Hashable)
 import Data.Foldable (find)
+import Data.Monoid ((<>))
 import Data.Text (Text, strip, stripPrefix, toCaseFold)
 import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Types (hAuthorization, status200, status400)
