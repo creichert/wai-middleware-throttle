@@ -56,7 +56,7 @@ references:
 
   # lts-12
 
-  lts-11_cache_key: &lts-12_cache_key
+  lts-12_cache_key: &lts-12_cache_key
     v1-stack-lts-12-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_lts-12_cache: &restore_stack_lts-12_cache
