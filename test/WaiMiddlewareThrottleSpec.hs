@@ -20,7 +20,7 @@ spec :: Spec
 spec = do
   let expirationSpec = TimeSpec 5 0
       runBefore :: IO (Throttle Int)
-      runBefore = initThrottler (defaultThrottleSettings expirationSpec) (const $ Right 1)
+      runBefore = initCustomThrottler (defaultThrottleSettings expirationSpec) (const $ Right 1)
   before runBefore $
     describe "Network.Wai.Middleware.Throttle" $ do
       describe "Bucket Operations" $ do
