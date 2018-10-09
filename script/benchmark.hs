@@ -66,8 +66,8 @@ main = do
       defaultSettings = Throttle.defaultThrottleSettings expirationInterval
       longPeriod = defaultSettings { Throttle.throttleSettingsPeriod = 30000000 }
       shortPeriod = defaultSettings { Throttle.throttleSettingsPeriod = 1 }
-      ipThrottle settings = Throttle.initThrottler settings Throttle.extractAddress
-      keyThrottle settings = Throttle.initThrottler settings extractKey
+      ipThrottle settings = Throttle.initThrottler settings
+      keyThrottle settings = Throttle.initCustomThrottler settings extractKey
   void . flip serverWithThrottle 3007 =<< ipThrottle defaultSettings
   void . flip serverWithThrottle 3008 =<< keyThrottle defaultSettings
   void . flip serverWithThrottle 3009 =<< ipThrottle longPeriod

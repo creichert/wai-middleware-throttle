@@ -79,7 +79,7 @@ main :: IO ()
 main = do
   let expirationInterval = TimeSpec 60 0
       defaultSettings = Throttle.defaultThrottleSettings expirationInterval
-  th <- Throttle.initThrottler defaultSettings extractKey
+  th <- Throttle.initCustomThrottler defaultSettings extractKey
   qs <- newQSemN 10
   waitQSemN qs 10
   void $ serverWithThrottle th 3000
