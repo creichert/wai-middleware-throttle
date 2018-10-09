@@ -2,9 +2,9 @@
 -- |
 -- Module      : Network.Wai.Middleware.Throttle
 -- Description : WAI Request Throttling Middleware
--- Copyright   : (c) 2015-2018 Christopher Reichert
+-- Copyright   : (c) 2015-2018 Christopher Reichert, 2017-2018 Daniel Fithian
 -- License     : BSD3
--- Maintainer  : Christopher Reichert <creichert07@gmail.com>
+-- Maintainer  : Christopher Reichert <creichert07@gmail.com>, Daniel Fithian <daniel.m.fithian@gmail.com>
 -- Stability   : experimental
 -- Portability : POSIX
 --
