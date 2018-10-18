@@ -1,5 +1,5 @@
 name: script
-version: '1.0'
+version: 0.3.0.0
 maintainer: Dan Fithian
 license: BSD3
 license-file: ../LICENSE
@@ -46,12 +46,13 @@ ghc-options:
 
 dependencies:
   - base
-  - classy-prelude
+  - bytestring
+  - clock
   - criterion
   - hashable
   - http-types
   - lens
-  - mtl
+  - random
   - text
   - wai
   - wai-middleware-throttle
@@ -61,4 +62,7 @@ dependencies:
 executables:
   benchmark:
     main: benchmark.hs
+    source-dirs: .
+  throttle-simple-server:
+    main: throttle-simple-server.hs
     source-dirs: .

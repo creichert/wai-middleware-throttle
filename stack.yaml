@@ -1,7 +1,9 @@
 
+resolver: lts-12.10
+
 extra-deps:
   - token-bucket-0.1.0.1
+
 packages:
   - '.'
   - script
-resolver: lts-12.10

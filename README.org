@@ -15,22 +15,32 @@ Rate Limit and Throttle WAI Requests
 **** Default (IP address throttler)
      #+BEGIN_SRC haskell
      main = do
-       st <- initThrottler
+       let expirationInterval = TimeSpec 3600 0 -- expire after an hour
+           settings = defaultThrottleSettings expirationInterval
+       th <- initThrottler settings
        let payload  = "{ \"api\", \"return data\" }"
-           app = throttle defaultThrottleSettings st
-                   $ \_ f -> f (responseLBS status200 [] payload)
+           app = throttle th $ \_ f -> f (responseLBS status200 [] payload)
        Warp.run 3000 app
      #+END_SRC
 **** Custom throttler (like an Authorization header)
      #+BEGIN_SRC haskell
      newtype MyData = MyData { unData :: Text } deriving (Eq, Ord, Show, Hashable)
-     instance RequestHashable MyData where
-       requestToKey = maybe (throwError "No authorization header") (pure . decodeUtf8 . snd) $
-         find ((== hAuthorization) . fst) . requestHeaders
+     extractData :: Request -> Either Response MyData
+     extractData = maybe (Left "No authorization header") (Right . decodeUtf8 . snd) $
+       find ((== hAuthorization) . fst) . requestHeaders
      main = do
-       st <- initCustomThrottler :: IO (CustomWaiThrottle MyData)
+       let expirationInterval = TimeSpec 3600 0 -- expire after an hour
+           settings = defaultThrottleSettings expirationInterval
+       th <- initCustomThrottler settings extractData
        let payload = "{ \"api\", \"return data\" }"
-           app = throttle defaultThrottleSettings st
-                   $ \_ f -> f (responseLBS status200 [] payload)
+           app = throttle th $ \_ f -> f (responseLBS status200 [] payload)
        Warp.run 3000 app
      #+END_SRC
+
+** Migration from Old API
+In migrating from the old API to the new one, the following changes are required:
+    - ~defaultThrottleSettings~ now takes another parameter for the expiration interval of the cache
+    - ~initThrottler~ now takes the settings
+      - ~initCustomThrottler~ now takes the settings and a function to extract the key that was
+        previously a method in the RequestHashable class
+    - ~throttle~ no longer takes the settings

@@ -1,16 +1,17 @@
 {-
-simple benchmarking tool:
-stack install
-benchmark -o bench.html (or benchmark --json bench.json)
+simple server for profiling:
+stack build --profile
+stack exec -- throttle-simple-server +RTS -h
+hp2ps throttle-simple-server.hp # open in preview
 -}
 import Prelude
 
-import Control.Concurrent (ThreadId, forkIO)
+import Control.Concurrent (ThreadId, forkIO, newQSemN, signalQSemN, threadDelay, waitQSemN)
+import Control.Exception (finally)
 import Control.Lens ((&), (.~), (?~))
-import Control.Monad ((>=>), void)
-import Criterion (Benchmark, bench, bgroup, whnfIO)
-import Criterion.Main (defaultMain)
+import Control.Monad ((>=>), replicateM_, void)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as C8
 import Data.ByteString.Lazy (fromStrict)
 import Data.Hashable (Hashable)
 import Data.Foldable (find)
@@ -29,6 +30,9 @@ import Network.Wreq ( defaults, getWith, header, postWith
 #endif
                     )
 import System.Clock (TimeSpec (TimeSpec))
+import System.Random (randomIO)
+
+data Method = Get | Post
 
 newtype Key = Key Text
   deriving (Eq, Ord, Hashable)
@@ -46,11 +50,13 @@ serverWithThrottle th port =
         f . responseLBS status200 [] . fromStrict =<< requestBody x
   in forkIO $ run port app
 
-benchmark :: String -> Int -> Benchmark
-benchmark name port =
-  let endpoint = "http://localhost:" <> show port <> "/"
+makeRequest :: [String] -> Int -> Method -> IO ()
+makeRequest identifiers port method = do
+  index <- flip mod (length identifiers) <$> randomIO
+  let identifier = identifiers !! index
+      endpoint = "http://localhost:" <> show port <> "/"
       options = defaults &
-        header hAuthorization .~ ["BASIC foo"] &
+        header hAuthorization .~ ["BASIC " <> C8.pack identifier] &
 #if !MIN_VERSION_wreq(0,5,0)
         checkStatus ?~ (\ _ _ _ -> Nothing)
 #else
@@ -58,29 +64,26 @@ benchmark name port =
 #endif
       doPost = postWith options endpoint ("foo" :: ByteString)
       doGet = getWith options endpoint
-  in bgroup name [ bench "get" $ whnfIO doGet
-                 , bench "post" $ whnfIO doPost ]
+  case method of
+    Get -> void doGet
+    Post -> void doPost
+
+baseIdentifiers :: [String]
+baseIdentifiers =
+  [ "foo"
+  , "bar"
+  , "baz"
+  , "bin"
+  ]
 
 main :: IO ()
 main = do
   let expirationInterval = TimeSpec 60 0
       defaultSettings = Throttle.defaultThrottleSettings expirationInterval
-      longPeriod = defaultSettings { Throttle.throttleSettingsPeriod = 30000000 }
-      shortPeriod = defaultSettings { Throttle.throttleSettingsPeriod = 1 }
-      ipThrottle settings = Throttle.initThrottler settings
-      keyThrottle settings = Throttle.initCustomThrottler settings extractKey
-  void . flip serverWithThrottle 3007 =<< ipThrottle defaultSettings
-  void . flip serverWithThrottle 3008 =<< keyThrottle defaultSettings
-  void . flip serverWithThrottle 3009 =<< ipThrottle longPeriod
-  void . flip serverWithThrottle 3010 =<< keyThrottle longPeriod
-  void . flip serverWithThrottle 3011 =<< ipThrottle shortPeriod
-  void . flip serverWithThrottle 3012 =<< keyThrottle shortPeriod
-
-  putStrLn "benchmark"
-  defaultMain [ benchmark "default by ip" 3007
-              , benchmark "default by key" 3008
-              , benchmark "long by ip" 3009
-              , benchmark "long by key" 3010
-              , benchmark "short by ip" 3011
-              , benchmark "short by key" 3012
-              ]
+  th <- Throttle.initCustomThrottler defaultSettings extractKey
+  qs <- newQSemN 10
+  waitQSemN qs 10
+  void $ serverWithThrottle th 3000
+  replicateM_ 10 $ void . forkIO . flip finally (signalQSemN qs 1) $
+    replicateM_ 1000 $ makeRequest baseIdentifiers 3000 Get >> makeRequest baseIdentifiers 3000 Post >> threadDelay 1000000
+  waitQSemN qs 10

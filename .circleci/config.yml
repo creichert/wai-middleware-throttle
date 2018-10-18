@@ -20,111 +20,111 @@ references:
   # Default branch / master
 
   default_cache_key: &default_cache_key
-    v1-stack-{{ checksum "stack.yaml" }}-{{ checksum "wai-middleware-throttle.cabal" }}
+    v2-stack-{{ checksum "stack.yaml" }}-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_default_cache: &restore_stack_default_cache
     restore_cache:
       keys:
         - *default_cache_key
-        - v1-stack-{{ checksum "stack.yaml" }}-
-        - v1-stack
+        - v2-stack-{{ checksum "stack.yaml" }}-
+        - v2-stack
 
   save_stack_default_cache: &save_stack_default_cache
     save_cache:
       key: *default_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
   # nightly
 
   nightly_cache_key: &nightly_cache_key
-    v1-stack-nightly-{{ checksum "wai-middleware-throttle.cabal" }}
+    v2-stack-nightly-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_nightly_cache: &restore_stack_nightly_cache
     restore_cache:
       keys:
         - *nightly_cache_key
-        - v1-stack
+        - v2-stack
 
   save_stack_nightly_cache: &save_stack_nightly_cache
     save_cache:
       key: *nightly_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
   # lts-12
 
-  lts-11_cache_key: &lts-12_cache_key
-    v1-stack-lts-12-{{ checksum "wai-middleware-throttle.cabal" }}
+  lts-12_cache_key: &lts-12_cache_key
+    v2-stack-lts-12-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_lts-12_cache: &restore_stack_lts-12_cache
     restore_cache:
       keys:
         - *lts-12_cache_key
-        - v1-stack
+        - v2-stack
 
   save_stack_lts-12_cache: &save_stack_lts-12_cache
     save_cache:
       key: *lts-12_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
   # lts-11
 
   lts-11_cache_key: &lts-11_cache_key
-    v1-stack-lts-11-{{ checksum "wai-middleware-throttle.cabal" }}
+    v2-stack-lts-11-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_lts-11_cache: &restore_stack_lts-11_cache
     restore_cache:
       keys:
         - *lts-11_cache_key
-        - v1-stack
+        - v2-stack
 
   save_stack_lts-11_cache: &save_stack_lts-11_cache
     save_cache:
       key: *lts-11_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
   # lts-10
 
   lts-10_cache_key: &lts-10_cache_key
-    v1-stack-lts-10-{{ checksum "wai-middleware-throttle.cabal" }}
+    v2-stack-lts-10-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_lts-10_cache: &restore_stack_lts-10_cache
     restore_cache:
       keys:
         - *lts-10_cache_key
-        - v1-stack
+        - v2-stack
 
   save_stack_lts-10_cache: &save_stack_lts-10_cache
     save_cache:
       key: *lts-10_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
   # lts-9
 
   lts-9_cache_key: &lts-9_cache_key
-    v1-stack-lts-9-{{ checksum "wai-middleware-throttle.cabal" }}
+    v2-stack-lts-9-{{ checksum "wai-middleware-throttle.cabal" }}
 
   restore_stack_lts-9_cache: &restore_stack_lts-9_cache
     restore_cache:
       keys:
         - *lts-9_cache_key
-        - v1-stack
+        - v2-stack
 
   save_stack_lts-9_cache: &save_stack_lts-9_cache
     save_cache:
       key: *lts-9_cache_key
       paths:
         - ~/.stack
-        - ~/.stack-work
+        - .stack-work
 
 jobs:
   build:
@@ -138,7 +138,7 @@ jobs:
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_default_cache
-      - run: stack test --no-terminal
+      - run: stack test $STACK_ARGS wai-middleware-throttle
 
   build-nightly:
     docker:
@@ -151,7 +151,7 @@ jobs:
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_nightly_cache
-      - run: stack test $STACK_ARGS
+      - run: stack test $STACK_ARGS wai-middleware-throttle
 
   build-lts-12:
     docker:
@@ -164,7 +164,7 @@ jobs:
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_lts-12_cache
-      - run: stack test $STACK_ARGS
+      - run: stack test $STACK_ARGS wai-middleware-throttle
 
   build-lts-11:
     docker:
@@ -177,7 +177,7 @@ jobs:
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_lts-11_cache
-      - run: stack test $STACK_ARGS
+      - run: stack test $STACK_ARGS wai-middleware-throttle
 
   build-lts-10:
     docker:
@@ -190,7 +190,7 @@ jobs:
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_lts-10_cache
-      - run: stack test $STACK_ARGS
+      - run: stack test $STACK_ARGS wai-middleware-throttle
 
   build-lts-9:
     docker:
@@ -202,4 +202,4 @@ jobs:
       - *restore_stack_lts-9_cache
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
       - *save_stack_lts-9_cache
-      - run: stack test $STACK_ARGS
+      - run: stack test $STACK_ARGS wai-middleware-throttle
