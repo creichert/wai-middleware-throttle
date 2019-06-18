@@ -19,7 +19,8 @@ import Data.Monoid ((<>))
 import Data.Text (Text, strip, stripPrefix, toCaseFold)
 import Data.Text.Encoding (decodeUtf8)
 import Network.HTTP.Types (hAuthorization, status200, status400)
-import Network.Wai (Request, Response, requestBody, requestHeaders, responseLBS)
+import Network.Wai (Request, Response, requestHeaders, responseLBS)
+import Network.Wai.Internal (getRequestBodyChunk)
 import Network.Wai.Handler.Warp (run)
 import qualified Network.Wai.Middleware.Throttle as Throttle
 import Network.Wreq ( defaults, getWith, header, postWith
@@ -47,7 +48,7 @@ extractKey =
 serverWithThrottle :: (Eq a, Hashable a) => Throttle.Throttle a -> Int -> IO ThreadId
 serverWithThrottle th port =
   let app = Throttle.throttle th $ \ x f ->
-        f . responseLBS status200 [] . fromStrict =<< requestBody x
+        f . responseLBS status200 [] . fromStrict =<< getRequestBodyChunk x
   in forkIO $ run port app
 
 makeRequest :: [String] -> Int -> Method -> IO ()
