@@ -14,7 +14,7 @@ import Data.Hashable (Hashable, hashWithSalt)
 import GHC.Word (Word64)
 import Network.HTTP.Types.Status (status429)
 import Network.Socket (SockAddr (SockAddrInet, SockAddrInet6, SockAddrUnix))
-#if MIN_VERSION_network(2,6,1)
+#if MIN_VERSION_network(2,6,1) && ! MIN_VERSION_network(3,0,0)
 import Network.Socket (SockAddr (SockAddrCan))
 #endif
 import Network.Wai (Application, Request, Response, remoteHost, responseLBS)
@@ -26,7 +26,7 @@ instance Hashable Address where
   hashWithSalt s (Address (SockAddrInet _ a))      = hashWithSalt s a
   hashWithSalt s (Address (SockAddrInet6 _ _ a _)) = hashWithSalt s a
   hashWithSalt s (Address (SockAddrUnix a))        = hashWithSalt s a
-#if MIN_VERSION_network(2,6,1)
+#if MIN_VERSION_network(2,6,1) && ! MIN_VERSION_network(3,0,0)
   hashWithSalt s (Address (SockAddrCan a))         = hashWithSalt s a
 #endif
 
@@ -34,7 +34,7 @@ instance Eq Address where
   Address (SockAddrInet _ a)      == Address (SockAddrInet _ b)      = a == b
   Address (SockAddrInet6 _ _ a _) == Address (SockAddrInet6 _ _ b _) = a == b
   Address (SockAddrUnix a)        == Address (SockAddrUnix b)        = a == b
-#if MIN_VERSION_network(2,6,1)
+#if MIN_VERSION_network(2,6,1) && ! MIN_VERSION_network(3,0,0)
   Address (SockAddrCan a)         == Address (SockAddrCan b)         = a == b
 #endif
   _ == _ = False -- not same constructor so cant be equal
@@ -43,7 +43,7 @@ instance Ord Address where
   Address (SockAddrInet _ a)      <= Address (SockAddrInet _ b)      = a <= b
   Address (SockAddrInet6 _ _ a _) <= Address (SockAddrInet6 _ _ b _) = a <= b
   Address (SockAddrUnix a)        <= Address (SockAddrUnix b)        = a <= b
-#if MIN_VERSION_network(2,6,1)
+#if MIN_VERSION_network(2,6,1) && ! MIN_VERSION_network(3,0,0)
   Address (SockAddrCan a)         <= Address (SockAddrCan b)         = a <= b
 #endif
   Address a <= Address b = a <= b -- not same constructor so use builtin ordering
