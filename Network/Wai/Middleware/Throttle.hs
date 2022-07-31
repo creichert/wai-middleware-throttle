@@ -17,8 +17,8 @@
 -- @
 -- main = do
 --   let expirationSpec = TimeSpec 5 0 -- five seconds
---   th <- initThrottler (defaultThrottleSettings expirationSpec) (const $ Right 1)
---   let appl = throttle th $ \ _ f -> f $
+--   th <- initThrottler (defaultThrottleSettings expirationSpec)
+--   let app = throttle th $ \ _ f -> f $
 --         responseLBS ok200 [] "ok"
 --   Warp.run 3000 app
 -- @

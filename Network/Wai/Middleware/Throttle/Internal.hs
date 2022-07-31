@@ -17,7 +17,7 @@ import Network.Socket (SockAddr (SockAddrInet, SockAddrInet6, SockAddrUnix))
 #if MIN_VERSION_network(2,6,1) && ! MIN_VERSION_network(3,0,0)
 import Network.Socket (SockAddr (SockAddrCan))
 #endif
-import Network.Wai (Application, Request, Response, remoteHost, responseLBS)
+import Network.Wai (Middleware, Request, Response, remoteHost, responseLBS)
 import System.Clock (Clock (Monotonic), TimeSpec, getTime)
 
 newtype Address = Address SockAddr
@@ -97,6 +97,7 @@ defaultThrottleSettings expirationInterval = ThrottleSettings
       responseLBS status429 [("Content-Type", "application/json")] "{\"message\":\"Too many requests.\"}"
   }
 
+-- | A simple way to initialize Throttle, which uses remote host address as a cache key.
 initThrottler :: ThrottleSettings -> IO (Throttle Address)
 initThrottler = flip initCustomThrottler extractAddress
 
@@ -164,7 +165,7 @@ throttleRequest th throttleKey = do
   tokenBucketTryAlloc1 bucket burst $ round (period / rate)
 
 -- |Run the throttling middleware given a throttle that has been initialized.
-throttle :: (Eq a, Hashable a) => Throttle a -> Application -> Application
+throttle :: (Eq a, Hashable a) => Throttle a -> Middleware
 throttle th app req respond = do
   let settings = throttleSettings th
       getKey = throttleGetKey th
