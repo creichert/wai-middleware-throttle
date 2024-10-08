@@ -34,7 +34,7 @@ library
                      , hashable              >= 1.2
                      , http-types
                      , mtl
-                     , network               >= 2.4.2 && <3.2
+                     , network               >= 2.4.2 && <3.3
                      , safe-exceptions
                      , stm
                      , text
