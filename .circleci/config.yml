@@ -7,10 +7,10 @@ workflows:
     jobs:
       - build
       #- build-nightly
-      - build-lts-12
-      - build-lts-11
-      - build-lts-10
-      - build-lts-9
+      - build-lts-21
+      - build-lts-19
+      - build-lts-18
+      - build-lts-17
 
 
 references:
@@ -54,74 +54,74 @@ references:
         - ~/.stack
         - .stack-work
 
-  # lts-12
+  # lts-21
 
-  lts-12_cache_key: &lts-12_cache_key
-    v2-stack-lts-12-{{ checksum "wai-middleware-throttle.cabal" }}
+  lts-21_cache_key: &lts-21_cache_key
+    v2-stack-lts-21-{{ checksum "wai-middleware-throttle.cabal" }}
 
-  restore_stack_lts-12_cache: &restore_stack_lts-12_cache
+  restore_stack_lts-21_cache: &restore_stack_lts-21_cache
     restore_cache:
       keys:
-        - *lts-12_cache_key
+        - *lts-21_cache_key
         - v2-stack
 
-  save_stack_lts-12_cache: &save_stack_lts-12_cache
+  save_stack_lts-21_cache: &save_stack_lts-21_cache
     save_cache:
-      key: *lts-12_cache_key
+      key: *lts-21_cache_key
       paths:
         - ~/.stack
         - .stack-work
 
-  # lts-11
+  # lts-19
 
-  lts-11_cache_key: &lts-11_cache_key
-    v2-stack-lts-11-{{ checksum "wai-middleware-throttle.cabal" }}
+  lts-19_cache_key: &lts-19_cache_key
+    v2-stack-lts-19-{{ checksum "wai-middleware-throttle.cabal" }}
 
-  restore_stack_lts-11_cache: &restore_stack_lts-11_cache
+  restore_stack_lts-19_cache: &restore_stack_lts-19_cache
     restore_cache:
       keys:
-        - *lts-11_cache_key
+        - *lts-19_cache_key
         - v2-stack
 
-  save_stack_lts-11_cache: &save_stack_lts-11_cache
+  save_stack_lts-19_cache: &save_stack_lts-19_cache
     save_cache:
-      key: *lts-11_cache_key
+      key: *lts-19_cache_key
       paths:
         - ~/.stack
         - .stack-work
 
-  # lts-10
+  # lts-18
 
-  lts-10_cache_key: &lts-10_cache_key
-    v2-stack-lts-10-{{ checksum "wai-middleware-throttle.cabal" }}
+  lts-18_cache_key: &lts-18_cache_key
+    v2-stack-lts-18-{{ checksum "wai-middleware-throttle.cabal" }}
 
-  restore_stack_lts-10_cache: &restore_stack_lts-10_cache
+  restore_stack_lts-18_cache: &restore_stack_lts-18_cache
     restore_cache:
       keys:
-        - *lts-10_cache_key
+        - *lts-18_cache_key
         - v2-stack
 
-  save_stack_lts-10_cache: &save_stack_lts-10_cache
+  save_stack_lts-18_cache: &save_stack_lts-18_cache
     save_cache:
-      key: *lts-10_cache_key
+      key: *lts-18_cache_key
       paths:
         - ~/.stack
         - .stack-work
 
-  # lts-9
+  # lts-17
 
-  lts-9_cache_key: &lts-9_cache_key
-    v2-stack-lts-9-{{ checksum "wai-middleware-throttle.cabal" }}
+  lts-17_cache_key: &lts-17_cache_key
+    v2-stack-lts-17-{{ checksum "wai-middleware-throttle.cabal" }}
 
-  restore_stack_lts-9_cache: &restore_stack_lts-9_cache
+  restore_stack_lts-17_cache: &restore_stack_lts-17_cache
     restore_cache:
       keys:
-        - *lts-9_cache_key
+        - *lts-17_cache_key
         - v2-stack
 
-  save_stack_lts-9_cache: &save_stack_lts-9_cache
+  save_stack_lts-17_cache: &save_stack_lts-17_cache
     save_cache:
-      key: *lts-9_cache_key
+      key: *lts-17_cache_key
       paths:
         - ~/.stack
         - .stack-work
@@ -129,7 +129,7 @@ references:
 jobs:
   build:
     docker:
-      - image: fpco/stack-build:lts-12.9
+      - image: fpco/stack-build:lts-22.37
     environment:
       STACK_ARGS: "--jobs 2"
     steps:
@@ -144,7 +144,7 @@ jobs:
     docker:
       - image: fpco/stack-build:latest
     environment:
-      STACK_ARGS: "--resolver nightly --no-terminal --jobs 2"
+      STACK_ARGS: "--resolver nightly-$(date +%F) --no-terminal --jobs 2"
     steps:
       - checkout
       - *restore_stack_nightly_cache
@@ -153,53 +153,53 @@ jobs:
       - *save_stack_nightly_cache
       - run: stack test $STACK_ARGS wai-middleware-throttle
 
-  build-lts-12:
+  build-lts-21:
     docker:
-      - image: fpco/stack-build:lts-12
+      - image: fpco/stack-build:lts-21
     environment:
-      STACK_ARGS: "--resolver lts-12 --no-terminal --jobs 2"
+      STACK_ARGS: "--resolver lts-21 --no-terminal --jobs 2"
     steps:
       - checkout
-      - *restore_stack_lts-12_cache
+      - *restore_stack_lts-21_cache
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
-      - *save_stack_lts-12_cache
+      - *save_stack_lts-21_cache
       - run: stack test $STACK_ARGS wai-middleware-throttle
 
-  build-lts-11:
+  build-lts-19:
     docker:
-      - image: fpco/stack-build:lts-11
+      - image: fpco/stack-build:lts-19
     environment:
-      STACK_ARGS: "--resolver lts-11 --no-terminal --jobs 2"
+      STACK_ARGS: "--resolver lts-19 --no-terminal --jobs 2"
     steps:
       - checkout
-      - *restore_stack_lts-11_cache
+      - *restore_stack_lts-19_cache
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
-      - *save_stack_lts-11_cache
+      - *save_stack_lts-19_cache
       - run: stack test $STACK_ARGS wai-middleware-throttle
 
-  build-lts-10:
+  build-lts-18:
     docker:
-      - image: fpco/stack-build:lts-10
+      - image: fpco/stack-build:lts-18
     environment:
-      STACK_ARGS: "--resolver lts-10 --no-terminal --jobs 2"
+      STACK_ARGS: "--resolver lts-18 --no-terminal --jobs 2"
     steps:
       - checkout
-      - *restore_stack_lts-10_cache
+      - *restore_stack_lts-18_cache
       - run: stack setup $STACK_ARGS
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
-      - *save_stack_lts-10_cache
+      - *save_stack_lts-18_cache
       - run: stack test $STACK_ARGS wai-middleware-throttle
 
-  build-lts-9:
+  build-lts-17:
     docker:
-      - image: fpco/stack-build:lts-9
+      - image: fpco/stack-build:lts-17
     environment:
-      STACK_ARGS: "--resolver lts-9 --no-terminal --jobs 2"
+      STACK_ARGS: "--resolver lts-17 --no-terminal --jobs 2"
     steps:
       - checkout
-      - *restore_stack_lts-9_cache
+      - *restore_stack_lts-17_cache
       - run: stack install $STACK_ARGS --only-dependencies --test --no-run-tests
-      - *save_stack_lts-9_cache
+      - *save_stack_lts-17_cache
       - run: stack test $STACK_ARGS wai-middleware-throttle
